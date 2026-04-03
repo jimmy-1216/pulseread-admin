@@ -1,0 +1,417 @@
+import type { Article, User, Feedback, DashboardStats, RecentActivity, NoiseConfig } from '@/types'
+
+// ============================================================
+// 仪表盘数据（与参考界面完全一致）
+// ============================================================
+export const MOCK_DASHBOARD_STATS: DashboardStats = {
+  totalArticles: 1234,
+  totalArticlesDelta: 47,
+  activeUsers: 5678,
+  activeUsersDelta: 123,
+  pendingFeedbacks: 89,
+  pendingFeedbacksDelta: 12,
+  systemUptime: '99.9%',
+}
+
+export const MOCK_RECENT_ACTIVITIES: RecentActivity[] = [
+  { id: 1, content: '管理员发布了新资讯《OpenAI 发布 GPT-5》', status: 'success', timeAgo: '2分钟前' },
+  { id: 2, content: '用户 user_3829 提交了功能反馈', status: 'pending', timeAgo: '15分钟前' },
+  { id: 3, content: '系统自动抓取了 32 条新资讯', status: 'success', timeAgo: '1小时前' },
+  { id: 4, content: '管理员更新了降噪配置参数', status: 'success', timeAgo: '2小时前' },
+  { id: 5, content: '用户 user_1024 提交了错误报告', status: 'pending', timeAgo: '3小时前' },
+  { id: 6, content: 'CDN 节点响应时间超过阈值', status: 'warning', timeAgo: '4小时前' },
+]
+
+// 近7天资讯发布趋势数据（3/25 ~ 3/31）
+export const MOCK_TREND_DATA = {
+  '7days': {
+    dates: ['3/25', '3/26', '3/27', '3/28', '3/29', '3/30', '3/31'],
+    values: [48, 55, 62, 58, 71, 78, 92],
+  },
+  '30days': {
+    dates: Array.from({ length: 30 }, (_, i) => {
+      const d = new Date('2026-03-02')
+      d.setDate(d.getDate() + i)
+      return `${d.getMonth() + 1}/${d.getDate()}`
+    }),
+    values: [
+      40, 45, 52, 48, 55, 60, 58, 62, 65, 70,
+      68, 72, 75, 71, 78, 80, 76, 82, 85, 88,
+      84, 86, 90, 88, 92, 95, 91, 88, 93, 96,
+    ],
+  },
+  '90days': {
+    dates: Array.from({ length: 90 }, (_, i) => {
+      const d = new Date('2026-01-01')
+      d.setDate(d.getDate() + i)
+      return `${d.getMonth() + 1}/${d.getDate()}`
+    }),
+    values: Array.from({ length: 90 }, (_, i) => Math.floor(30 + i * 0.7 + Math.random() * 15)),
+  },
+}
+
+// 分类分布数据（与参考界面饼图一致）
+export const MOCK_DOMAIN_DISTRIBUTION = [
+  { name: '科技', value: 45, color: '#1677FF' },
+  { name: '财经', value: 28, color: '#FA8C16' },
+  { name: '政策', value: 15, color: '#52C41A' },
+  { name: '商情', value: 8, color: '#EB2F96' },
+  { name: '其他', value: 4, color: '#8C8C8C' },
+]
+
+// ============================================================
+// 资讯列表（与参考界面完全一致，共12条）
+// ============================================================
+export const MOCK_ARTICLES: Article[] = [
+  {
+    id: 1,
+    title: 'OpenAI 发布 GPT-5，多模态能力大幅提升',
+    summary: '新模型在推理、视觉理解方面取得突破性进展',
+    domain: 'tech',
+    region: 'international',
+    source: 'TechCrunch',
+    publishTime: '2026-03-31 10:30',
+    aiScore: 95,
+    tags: ['OpenAI', 'GPT-5', '大模型'],
+    viewCount: 3420,
+    likeCount: 128,
+    status: 'published',
+  },
+  {
+    id: 2,
+    title: 'A 股三大指数集体收涨，科技板块领涨',
+    summary: '沪指上涨 1.2%，深成指涨幅达 1.8%',
+    domain: 'finance',
+    region: 'domestic',
+    source: '新浪财经',
+    publishTime: '2026-03-31 09:15',
+    aiScore: 88,
+    tags: ['A股', '科技板块', '行情'],
+    viewCount: 2156,
+    likeCount: 67,
+    status: 'published',
+  },
+  {
+    id: 3,
+    title: '国务院发布数字经济发展新规，明确 AI 监管框架',
+    summary: '新规对大模型训练数据和安全评估提出具体要求',
+    domain: 'policy',
+    region: 'domestic',
+    source: '新华社',
+    publishTime: '2026-03-30 16:00',
+    aiScore: 92,
+    tags: ['数字经济', 'AI监管', '政策'],
+    viewCount: 4890,
+    likeCount: 203,
+    status: 'published',
+  },
+  {
+    id: 4,
+    title: '苹果 WWDC 2026 确认将展示 AI 操作系统革新',
+    summary: 'iOS 20 将深度集成 Apple Intelligence，重构交互范式',
+    domain: 'tech',
+    region: 'international',
+    source: '9to5Mac',
+    publishTime: '2026-03-30 14:20',
+    aiScore: 91,
+    tags: ['苹果', 'WWDC', 'iOS'],
+    viewCount: 1876,
+    likeCount: 89,
+    status: 'published',
+  },
+  {
+    id: 5,
+    title: '比亚迪 3 月销量突破 50 万辆，创历史新高',
+    summary: '新能源车渗透率持续攀升，出口市场贡献显著',
+    domain: 'commerce',
+    region: 'domestic',
+    source: '汽车之家',
+    publishTime: '2026-03-30 11:30',
+    aiScore: 85,
+    tags: ['比亚迪', '新能源', '销量'],
+    viewCount: 2340,
+    likeCount: 156,
+    status: 'published',
+  },
+  {
+    id: 6,
+    title: '美联储维持利率不变，暗示年内降息预期',
+    summary: '鲍威尔表示将密切关注通胀数据变化',
+    domain: 'finance',
+    region: 'international',
+    source: 'Reuters',
+    publishTime: '2026-03-29 22:00',
+    aiScore: 89,
+    tags: ['美联储', '降息', '利率'],
+    viewCount: 5120,
+    likeCount: 267,
+    status: 'published',
+  },
+  {
+    id: 7,
+    title: '华为 Mate 70 系列发布，麒麟芯片性能大幅提升',
+    summary: '新旗舰搭载自研麒麟 X1 芯片，AI 算力提升 3 倍',
+    domain: 'tech',
+    region: 'domestic',
+    source: '36氪',
+    publishTime: '2026-03-29 10:00',
+    aiScore: 87,
+    tags: ['华为', 'Mate70', '麒麟芯片'],
+    viewCount: 3890,
+    likeCount: 234,
+    status: 'published',
+  },
+  {
+    id: 8,
+    title: '全球气候峰会达成碳中和新协议，中美联合声明',
+    summary: '协议要求 2035 年前主要经济体实现碳排放峰值',
+    domain: 'policy',
+    region: 'international',
+    source: 'BBC',
+    publishTime: '2026-03-28 20:30',
+    aiScore: 78,
+    tags: ['气候峰会', '碳中和', '中美'],
+    viewCount: 1234,
+    likeCount: 45,
+    status: 'published',
+  },
+  {
+    id: 9,
+    title: '腾讯混元大模型 3.0 发布，推理能力对标 GPT-4o',
+    summary: '在多项中文基准测试中超越海外同类产品',
+    domain: 'tech',
+    region: 'domestic',
+    source: '腾讯科技',
+    publishTime: '2026-03-28 15:00',
+    aiScore: 83,
+    tags: ['腾讯', '混元', '大模型'],
+    viewCount: 2780,
+    likeCount: 134,
+    status: 'published',
+  },
+  {
+    id: 10,
+    title: '港股恒生指数大涨 3%，科技股领涨',
+    summary: '受内地经济数据超预期影响，市场情绪明显改善',
+    domain: 'finance',
+    region: 'international',
+    source: '香港经济日报',
+    publishTime: '2026-03-27 16:30',
+    aiScore: 76,
+    tags: ['港股', '恒生指数', '科技股'],
+    viewCount: 1560,
+    likeCount: 78,
+    status: 'published',
+  },
+  {
+    id: 11,
+    title: '国内 5G-A 商用网络覆盖率突破 60%',
+    summary: '工信部数据显示，全国已建成 5G-A 基站超 80 万个',
+    domain: 'tech',
+    region: 'domestic',
+    source: '人民邮电报',
+    publishTime: '2026-03-27 09:00',
+    aiScore: 72,
+    tags: ['5G-A', '工信部', '基站'],
+    viewCount: 890,
+    likeCount: 34,
+    status: 'published',
+  },
+  {
+    id: 12,
+    title: 'SpaceX 星舰第六次试飞成功，完成海上回收',
+    summary: '超重型助推器首次实现海上平台精准着陆',
+    domain: 'tech',
+    region: 'international',
+    source: 'Space.com',
+    publishTime: '2026-03-26 08:00',
+    aiScore: 96,
+    tags: ['SpaceX', '星舰', '火箭回收'],
+    viewCount: 6780,
+    likeCount: 456,
+    status: 'published',
+  },
+]
+
+// ============================================================
+// 用户列表（Mock 数据）
+// ============================================================
+export const MOCK_USERS: User[] = [
+  {
+    id: 1,
+    nickname: '张三',
+    phone: '138****8001',
+    email: 'zhangsan@example.com',
+    plan: 'pro',
+    subscribedDomains: ['tech', 'finance'],
+    radarWords: ['GPT-5', 'A股'],
+    noiseLevel: 'focus',
+    registerTime: '2025-12-01 10:00',
+    lastActiveTime: '2026-03-31 09:30',
+    readCount: 1234,
+    status: 'active',
+    regionPref: 'all',
+    blockedSentiments: [],
+    enableAutoTranslate: true,
+    enableNotification: true,
+    readingMode: 'comfortable',
+  },
+  {
+    id: 2,
+    nickname: '李四',
+    phone: '139****8002',
+    email: 'lisi@example.com',
+    plan: 'free',
+    subscribedDomains: ['tech'],
+    radarWords: ['大模型'],
+    noiseLevel: 'open',
+    registerTime: '2026-01-15 14:00',
+    lastActiveTime: '2026-03-30 18:20',
+    readCount: 456,
+    status: 'active',
+    regionPref: 'domestic',
+    blockedSentiments: ['negative'],
+    enableAutoTranslate: false,
+    enableNotification: true,
+    readingMode: 'compact',
+  },
+  {
+    id: 3,
+    nickname: '王五',
+    phone: '137****8003',
+    plan: 'pro',
+    subscribedDomains: ['finance', 'policy'],
+    radarWords: ['美联储', '降息', '招投标'],
+    noiseLevel: 'major',
+    registerTime: '2025-11-20 09:00',
+    lastActiveTime: '2026-03-31 08:00',
+    readCount: 2890,
+    status: 'active',
+    regionPref: 'international',
+    blockedSentiments: [],
+    enableAutoTranslate: true,
+    enableNotification: false,
+    readingMode: 'comfortable',
+  },
+  {
+    id: 4,
+    nickname: '赵六',
+    phone: '136****8004',
+    plan: 'enterprise',
+    subscribedDomains: ['tech', 'finance', 'policy', 'commerce'],
+    radarWords: ['AI', '政策监管', '招投标', '新能源'],
+    noiseLevel: 'quake',
+    registerTime: '2025-10-01 00:00',
+    lastActiveTime: '2026-03-31 10:15',
+    readCount: 5678,
+    status: 'active',
+    regionPref: 'all',
+    blockedSentiments: ['negative', 'neutral'],
+    enableAutoTranslate: true,
+    enableNotification: true,
+    readingMode: 'comfortable',
+  },
+  {
+    id: 5,
+    nickname: 'user_3829',
+    phone: '135****8005',
+    plan: 'free',
+    subscribedDomains: ['tech'],
+    radarWords: [],
+    noiseLevel: 'focus',
+    registerTime: '2026-02-10 16:00',
+    lastActiveTime: '2026-03-31 07:45',
+    readCount: 123,
+    status: 'active',
+    regionPref: 'domestic',
+    blockedSentiments: [],
+    enableAutoTranslate: true,
+    enableNotification: false,
+    readingMode: 'comfortable',
+  },
+  {
+    id: 6,
+    nickname: 'user_1024',
+    phone: '133****8006',
+    plan: 'free',
+    subscribedDomains: ['finance'],
+    radarWords: ['A股'],
+    noiseLevel: 'open',
+    registerTime: '2026-03-01 11:00',
+    lastActiveTime: '2026-03-29 20:30',
+    readCount: 67,
+    status: 'banned',
+    regionPref: 'all',
+    blockedSentiments: [],
+    enableAutoTranslate: false,
+    enableNotification: false,
+    readingMode: 'compact',
+  },
+]
+
+// ============================================================
+// 用户反馈（Mock 数据，共12条待处理）
+// ============================================================
+export const MOCK_FEEDBACKS: Feedback[] = [
+  { id: 1, userId: 5, userNickname: 'user_3829', type: 'feature', content: '希望增加资讯收藏夹分类功能，方便按项目整理', status: 'pending', createTime: '2026-03-31 15:10' },
+  { id: 2, userId: 6, userNickname: 'user_1024', type: 'bug', content: '偏好设置页面降噪滑块在 iOS 16 上无法正常滑动', status: 'pending', createTime: '2026-03-31 14:30' },
+  { id: 3, userId: 2, userNickname: '李四', type: 'content', content: '文章《A股三大指数》的 AI 摘要有误，涨幅数据不准确', status: 'processing', createTime: '2026-03-31 11:00' },
+  { id: 4, userId: 1, userNickname: '张三', type: 'feature', content: '希望支持资讯导出为 PDF 功能', status: 'pending', createTime: '2026-03-30 20:00' },
+  { id: 5, userId: 3, userNickname: '王五', type: 'bug', content: '搜索页面输入关键词后，历史记录不会更新', status: 'resolved', createTime: '2026-03-30 16:00', replyContent: '已修复，将在下个版本发布' },
+  { id: 6, userId: 4, userNickname: '赵六', type: 'feature', content: '希望企业版支持多账号协作和资讯共享', status: 'pending', createTime: '2026-03-30 09:30' },
+  { id: 7, userId: 5, userNickname: 'user_3829', type: 'other', content: '小程序启动速度较慢，希望优化', status: 'pending', createTime: '2026-03-29 22:00' },
+  { id: 8, userId: 2, userNickname: '李四', type: 'content', content: '科技领域缺少半导体相关资讯，来源太少', status: 'pending', createTime: '2026-03-29 18:00' },
+  { id: 9, userId: 1, userNickname: '张三', type: 'bug', content: '双语对照模式下，英文字体显示异常', status: 'pending', createTime: '2026-03-29 14:00' },
+  { id: 10, userId: 3, userNickname: '王五', type: 'feature', content: '希望增加资讯推送通知功能，重要新闻及时提醒', status: 'pending', createTime: '2026-03-28 20:00' },
+  { id: 11, userId: 4, userNickname: '赵六', type: 'feature', content: '希望支持自定义数据源，添加特定行业媒体', status: 'processing', createTime: '2026-03-28 15:00' },
+  { id: 12, userId: 5, userNickname: 'user_3829', type: 'bug', content: '文章详情页知识溯源树展开后无法收起', status: 'pending', createTime: '2026-03-27 10:00' },
+]
+
+// ============================================================
+// 降噪配置（与参考界面完全一致）
+// ============================================================
+// ============================================================
+// 数据来源（Mock 数据）
+// ============================================================
+export const MOCK_SOURCES: import('@/types').Source[] = [
+  { id: 1, name: '36氪', url: 'https://36kr.com', region: 'domestic', domain: 'tech', credibility: 85, fetchInterval: '15min', rssUrl: 'https://36kr.com/feed', remark: '国内科技媒体', todayCount: 42, status: 'active' },
+  { id: 2, name: 'TechCrunch', url: 'https://techcrunch.com', region: 'international', domain: 'tech', credibility: 92, fetchInterval: '30min', rssUrl: 'https://techcrunch.com/feed', remark: '国际科技媒体', todayCount: 38, status: 'active' },
+  { id: 3, name: '新浪财经', url: 'https://finance.sina.com.cn', region: 'domestic', domain: 'finance', credibility: 80, fetchInterval: '15min', rssUrl: '', remark: '国内财经媒体', todayCount: 56, status: 'active' },
+  { id: 4, name: 'Reuters', url: 'https://reuters.com', region: 'international', domain: 'finance', credibility: 95, fetchInterval: '15min', rssUrl: 'https://reuters.com/rssFeed', remark: '国际通讯社', todayCount: 67, status: 'active' },
+  { id: 5, name: '新华社', url: 'https://xinhuanet.com', region: 'domestic', domain: 'policy', credibility: 98, fetchInterval: '30min', rssUrl: '', remark: '官方通讯社', todayCount: 23, status: 'active' },
+  { id: 6, name: 'BBC', url: 'https://bbc.com', region: 'international', domain: 'policy', credibility: 88, fetchInterval: '1h', rssUrl: 'https://feeds.bbci.co.uk/news/rss.xml', remark: '英国媒体', todayCount: 18, status: 'active' },
+  { id: 7, name: '汽车之家', url: 'https://autohome.com.cn', region: 'domestic', domain: 'commerce', credibility: 78, fetchInterval: '2h', rssUrl: '', remark: '汽车行业媒体', todayCount: 12, status: 'active' },
+  { id: 8, name: '百度新闻', url: 'https://news.baidu.com', region: 'domestic', domain: 'tech', credibility: 55, fetchInterval: '6h', rssUrl: '', remark: '聚合新闻平台，可信度较低', todayCount: 8, status: 'inactive' },
+]
+
+// ============================================================
+// 全局雷达词（Mock 数据）
+// ============================================================
+export const MOCK_RADAR_WORDS: string[] = [
+  'GPT-5', 'OpenAI', 'A股', '新能源', '半导体',
+  '大模型', '美联储', '招投标', '政策监管', '芯片',
+  '人工智能', '降息', '碳中和', '数字经济', '华为',
+]
+
+export const DEFAULT_NOISE_CONFIG: NoiseConfig = {
+  highQualityThreshold: 80,
+  mediumQualityThreshold: 60,
+  filterThreshold: 40,
+  adFilter: true,
+  titleFilter: true,
+  lowQualitySourceFilter: true,
+  duplicateMerge: true,
+  obsceneDetection: false,
+  paywallFilter: false,
+  titleSimilarity: 85,
+  contentSimilarity: 70,
+  duplicateTimeWindow: 24,
+  sourceCredibility: {
+    '新华社': 10,
+    'Reuters': 8,
+    '36氪': 5,
+    'TechCrunch': 6,
+    '腾讯科技': 4,
+    '百度新闻': -5,
+  },
+}
