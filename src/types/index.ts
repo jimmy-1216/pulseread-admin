@@ -1,14 +1,31 @@
-// ============================================================
-// PulseRead 后台管理系统 - 核心类型定义
+// PulseRead 后台管理系统 - 共享业务类型
 // ============================================================
 
-/** 资讯领域 */
 export type ArticleDomain = 'tech' | 'finance' | 'policy' | 'commerce'
-
-/** 地区 */
 export type ArticleRegion = 'domestic' | 'international'
+export type UserPlan = 'free' | 'pro' | 'enterprise'
+export type UserStatus = 'active' | 'banned'
+export type FeedbackType = 'bug' | 'feature' | 'content' | 'other'
+export type FeedbackStatus = 'pending' | 'processing' | 'resolved' | 'closed'
+export type SourceStatus = 'active' | 'inactive'
+export type AdminRole = 'admin' | 'editor' | 'viewer'
 
-/** 资讯条目 */
+export interface OptionItem<T extends string = string> {
+  label: string
+  value: T
+  color?: string
+}
+
+export interface SummaryStat {
+  label: string
+  value: number | string
+  unit?: string
+  delta?: number
+  trend?: 'up' | 'down' | 'flat'
+  color?: string
+  description?: string
+}
+
 export interface Article {
   id: number
   title: string
@@ -19,26 +36,47 @@ export interface Article {
   publishTime: string
   aiScore: number
   tags: string[]
-  viewCount?: number
-  likeCount?: number
-  status?: 'published' | 'draft' | 'hidden'
+  viewCount: number
+  likeCount: number
+  collectCount?: number
+  isLiked?: boolean
+  isCollected?: boolean
+  status: 'published' | 'draft' | 'hidden'
 }
 
-/** 用户信息 */
+export interface ArticlePayload {
+  title: string
+  summary: string
+  domain: ArticleDomain
+  region: ArticleRegion
+  source: string
+  aiScore: number
+  tags: string[]
+}
+
+export interface ArticleQuery {
+  keyword?: string
+  domain?: ArticleDomain | 'all'
+  region?: ArticleRegion | 'all'
+  scoreRange?: 'all' | 'high' | 'medium' | 'low'
+  page?: number
+  pageSize?: number
+}
+
 export interface User {
   id: number
   nickname: string
   avatar?: string
   phone?: string
   email?: string
-  plan: 'free' | 'pro' | 'enterprise'
+  plan: UserPlan
   subscribedDomains: ArticleDomain[]
   radarWords: string[]
   noiseLevel: 'open' | 'focus' | 'major' | 'quake'
   registerTime: string
   lastActiveTime: string
   readCount: number
-  status: 'active' | 'banned'
+  status: UserStatus
   regionPref?: 'all' | 'domestic' | 'international'
   blockedSentiments?: string[]
   enableAutoTranslate?: boolean
@@ -46,34 +84,60 @@ export interface User {
   readingMode?: 'comfortable' | 'compact'
 }
 
-/** 数据来源 */
+export interface UserQuery {
+  keyword?: string
+  plan?: UserPlan | 'all'
+  status?: UserStatus | 'all'
+  page?: number
+  pageSize?: number
+}
+
 export interface Source {
   id: number
   name: string
   url: string
-  region: 'domestic' | 'international'
-  domain: string
+  region: ArticleRegion
+  domain: ArticleDomain
   credibility: number
   fetchInterval: string
   rssUrl: string
   remark: string
   todayCount: number
-  status: 'active' | 'inactive'
+  status: SourceStatus
 }
 
-/** 用户反馈 */
+export interface SourcePayload {
+  name: string
+  url: string
+  region: ArticleRegion
+  domain: ArticleDomain
+  credibility: number
+  fetchInterval: string
+  rssUrl: string
+  remark: string
+  todayCount?: number
+  status: SourceStatus
+}
+
 export interface Feedback {
   id: number
   userId: number
   userNickname: string
-  type: 'bug' | 'feature' | 'content' | 'other'
+  type: FeedbackType
   content: string
-  status: 'pending' | 'processing' | 'resolved' | 'closed'
+  status: FeedbackStatus
   createTime: string
   replyContent?: string
+  replyTime?: string
 }
 
-/** 仪表盘统计 */
+export interface FeedbackQuery {
+  status?: FeedbackStatus | 'all'
+  type?: FeedbackType | 'all'
+  page?: number
+  pageSize?: number
+}
+
 export interface DashboardStats {
   totalArticles: number
   totalArticlesDelta: number
@@ -84,7 +148,6 @@ export interface DashboardStats {
   systemUptime: string
 }
 
-/** 最近活动 */
 export interface RecentActivity {
   id: number
   content: string
@@ -92,7 +155,25 @@ export interface RecentActivity {
   timeAgo: string
 }
 
-/** 降噪配置 */
+export interface TrendPoint {
+  dates: string[]
+  values: number[]
+}
+
+export interface DistributionItem {
+  name: string
+  value: number
+}
+
+export interface DomainItem {
+  key: ArticleDomain
+  label: string
+  icon: string
+  description: string
+  color: string
+  status: SourceStatus
+}
+
 export interface NoiseConfig {
   highQualityThreshold: number
   mediumQualityThreshold: number
@@ -109,25 +190,38 @@ export interface NoiseConfig {
   sourceCredibility: Record<string, number>
 }
 
-/** 分页参数 */
 export interface PaginationParams {
   page: number
   pageSize: number
   total?: number
 }
 
-/** API 响应 */
+export interface PaginatedResult<T> {
+  list: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
 }
 
-/** 管理员信息 */
 export interface AdminUser {
   id: number
   name: string
   email: string
-  role: 'admin' | 'editor' | 'viewer'
+  role: AdminRole
   avatar?: string
+}
+
+export interface MenuMeta {
+  key: string
+  label: string
+  path?: string
+  icon?: string
+  badge?: number
+  children?: MenuMeta[]
 }

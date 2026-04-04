@@ -1,17 +1,23 @@
 <template>
-  <div class="user-list">
-    <!-- 筛选 -->
-    <a-card style="margin-bottom: 16px">
+  <div class="user-page">
+    <section class="page-header">
+      <div>
+        <h1>用户管理</h1>
+        <p>集中查看用户状态、订阅偏好、阅读习惯与封禁操作，支持按套餐与状态快速筛选。</p>
+      </div>
+    </section>
+
+    <a-card class="filter-card" :bordered="false">
       <a-row :gutter="[16, 16]" align="middle">
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :xl="8">
           <a-input-search
             v-model:value="filters.keyword"
-            placeholder="搜索昵称或手机号..."
-            @search="loadData"
+            placeholder="搜索昵称、手机号或邮箱..."
             allow-clear
+            @search="loadData"
           />
         </a-col>
-        <a-col :span="4">
+        <a-col :xs="24" :sm="12" :xl="4">
           <a-select v-model:value="filters.plan" style="width: 100%" @change="loadData">
             <a-select-option value="all">全部套餐</a-select-option>
             <a-select-option value="free">免费版</a-select-option>
@@ -19,25 +25,26 @@
             <a-select-option value="enterprise">企业版</a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="4">
+        <a-col :xs="24" :sm="12" :xl="4">
           <a-select v-model:value="filters.status" style="width: 100%" @change="loadData">
             <a-select-option value="all">全部状态</a-select-option>
             <a-select-option value="active">正常</a-select-option>
             <a-select-option value="banned">已封禁</a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="4">
-          <a-button @click="resetFilters">重置</a-button>
+        <a-col :xs="24" :sm="12" :xl="4">
+          <a-button @click="resetFilters">重置筛选</a-button>
         </a-col>
       </a-row>
     </a-card>
 
-    <!-- 表格 -->
-    <a-card>
+    <a-card class="table-card" :bordered="false">
       <a-table
         :columns="columns"
         :data-source="users"
         :loading="loading"
+        row-key="id"
+        size="middle"
         :pagination="{
           current: pagination.page,
           pageSize: pagination.pageSize,
@@ -46,45 +53,33 @@
           showTotal: (total: number) => `共 ${total} 位用户`,
           onChange: handlePageChange,
         }"
-        row-key="id"
-        size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <!-- 昵称 -->
           <template v-if="column.key === 'nickname'">
-            <div style="display: flex; align-items: center; gap: 8px">
-              <a-avatar size="small" style="background-color: #00B96B">
+            <div class="nickname-cell">
+              <a-avatar size="small" class="nickname-avatar">
                 {{ record.nickname.charAt(0) }}
               </a-avatar>
               <span>{{ record.nickname }}</span>
             </div>
           </template>
 
-          <!-- 套餐 -->
           <template v-else-if="column.key === 'plan'">
             <a-tag :color="getPlanColor(record.plan)">{{ getPlanLabel(record.plan) }}</a-tag>
           </template>
 
-          <!-- 订阅领域 -->
           <template v-else-if="column.key === 'subscribedDomains'">
-            <a-space>
-              <a-tag
-                v-for="d in record.subscribedDomains"
-                :key="d"
-                :color="getDomainColor(d)"
-                size="small"
-              >
-                {{ getDomainLabel(d) }}
+            <a-space wrap>
+              <a-tag v-for="domain in record.subscribedDomains" :key="domain" :color="getDomainColor(domain)">
+                {{ getDomainLabel(domain) }}
               </a-tag>
             </a-space>
           </template>
 
-          <!-- 降噪档位 -->
           <template v-else-if="column.key === 'noiseLevel'">
-            <span style="font-size: 12px; color: #666">{{ getNoiseLevelLabel(record.noiseLevel) }}</span>
+            <span class="noise-text">{{ getNoiseLevelLabel(record.noiseLevel) }}</span>
           </template>
 
-          <!-- 状态 -->
           <template v-else-if="column.key === 'status'">
             <a-badge
               :status="record.status === 'active' ? 'success' : 'error'"
@@ -92,7 +87,6 @@
             />
           </template>
 
-          <!-- 操作 -->
           <template v-else-if="column.key === 'action'">
             <a-space>
               <a-button type="link" size="small" @click="showUserDetail(record)">详情</a-button>
@@ -120,12 +114,11 @@
       </a-table>
     </a-card>
 
-    <!-- 用户详情弹窗 -->
     <a-modal
       v-model:open="detailVisible"
-      :title="`用户详情 - ${currentUser?.nickname}`"
+      :title="`用户详情 - ${currentUser?.nickname ?? ''}`"
       :footer="null"
-      width="600px"
+      width="680px"
     >
       <template v-if="currentUser">
         <a-descriptions :column="2" bordered size="small">
@@ -147,21 +140,21 @@
           <a-descriptions-item label="注册时间" :span="2">{{ currentUser.registerTime }}</a-descriptions-item>
           <a-descriptions-item label="最近活跃" :span="2">{{ currentUser.lastActiveTime }}</a-descriptions-item>
           <a-descriptions-item label="订阅领域" :span="2">
-            <a-space>
-              <a-tag v-for="d in currentUser.subscribedDomains" :key="d" :color="getDomainColor(d)">
-                {{ getDomainLabel(d) }}
+            <a-space wrap>
+              <a-tag v-for="domain in currentUser.subscribedDomains" :key="domain" :color="getDomainColor(domain)">
+                {{ getDomainLabel(domain) }}
               </a-tag>
             </a-space>
           </a-descriptions-item>
           <a-descriptions-item label="雷达词" :span="2">
             <a-space wrap>
-              <a-tag v-for="w in currentUser.radarWords" :key="w" color="green">{{ w }}</a-tag>
-              <span v-if="currentUser.radarWords.length === 0" style="color: #999">暂无</span>
+              <a-tag v-for="word in currentUser.radarWords" :key="word" color="green">{{ word }}</a-tag>
+              <span v-if="currentUser.radarWords.length === 0" class="empty-text">暂无</span>
             </a-space>
           </a-descriptions-item>
         </a-descriptions>
 
-        <a-divider orientation="left" style="margin: 16px 0 12px; font-size: 14px">阅读偏好</a-divider>
+        <a-divider orientation="left" class="detail-divider">阅读偏好</a-divider>
         <a-descriptions :column="2" bordered size="small">
           <a-descriptions-item label="地区偏好">
             {{ getRegionLabel(currentUser.regionPref) }}
@@ -176,10 +169,12 @@
             <a-badge :status="currentUser.enableNotification ? 'success' : 'default'" :text="currentUser.enableNotification ? '已开启' : '未开启'" />
           </a-descriptions-item>
           <a-descriptions-item label="屏蔽情绪" :span="2">
-            <a-space v-if="currentUser.blockedSentiments && currentUser.blockedSentiments.length > 0">
-              <a-tag v-for="s in currentUser.blockedSentiments" :key="s" color="red">{{ getSentimentLabel(s) }}</a-tag>
+            <a-space v-if="currentUser.blockedSentiments && currentUser.blockedSentiments.length > 0" wrap>
+              <a-tag v-for="sentiment in currentUser.blockedSentiments" :key="sentiment" color="red">
+                {{ getSentimentLabel(sentiment) }}
+              </a-tag>
             </a-space>
-            <span v-else style="color: #999">未屏蔽</span>
+            <span v-else class="empty-text">未屏蔽</span>
           </a-descriptions-item>
         </a-descriptions>
       </template>
@@ -188,29 +183,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { userApi } from '@/api'
-import type { User } from '@/types'
+import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { userApi } from '@/api'
+import type { ArticleDomain, User, UserPlan, UserStatus } from '@/types'
+
+type FilterState = {
+  keyword: string
+  plan: UserPlan | 'all'
+  status: UserStatus | 'all'
+}
+
+type NoiseLevel = User['noiseLevel']
+type RegionPreference = User['regionPref']
+
+type SentimentKey = 'positive' | 'negative' | 'neutral'
 
 const loading = ref(false)
 const users = ref<User[]>([])
 const detailVisible = ref(false)
 const currentUser = ref<User | null>(null)
 
-const filters = reactive({ keyword: '', plan: 'all', status: 'all' })
-const pagination = reactive({ page: 1, pageSize: 10, total: 0 })
+const filters = reactive<FilterState>({
+  keyword: '',
+  plan: 'all',
+  status: 'all',
+})
+
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+})
 
 const columns = [
-  { title: '用户', key: 'nickname', width: 140 },
-  { title: '手机号', dataIndex: 'phone', key: 'phone', width: 120 },
-  { title: '套餐', key: 'plan', width: 90 },
-  { title: '订阅领域', key: 'subscribedDomains', width: 180 },
-  { title: '降噪档位', key: 'noiseLevel', width: 100 },
-  { title: '阅读量', dataIndex: 'readCount', key: 'readCount', width: 80, sorter: (a: User, b: User) => a.readCount - b.readCount },
-  { title: '最近活跃', dataIndex: 'lastActiveTime', key: 'lastActiveTime', width: 140 },
-  { title: '状态', key: 'status', width: 90 },
-  { title: '操作', key: 'action', width: 120, fixed: 'right' },
+  { title: '用户', key: 'nickname', width: 160 },
+  { title: '手机号', dataIndex: 'phone', key: 'phone', width: 140 },
+  { title: '套餐', key: 'plan', width: 96 },
+  { title: '订阅领域', key: 'subscribedDomains', width: 220 },
+  { title: '降噪档位', key: 'noiseLevel', width: 110 },
+  { title: '阅读量', dataIndex: 'readCount', key: 'readCount', width: 90, sorter: (a: User, b: User) => a.readCount - b.readCount },
+  { title: '最近活跃', dataIndex: 'lastActiveTime', key: 'lastActiveTime', width: 170 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '操作', key: 'action', width: 120, fixed: 'right' as const },
 ]
 
 async function loadData() {
@@ -235,13 +250,13 @@ function resetFilters() {
   filters.plan = 'all'
   filters.status = 'all'
   pagination.page = 1
-  loadData()
+  void loadData()
 }
 
 function handlePageChange(page: number, pageSize: number) {
   pagination.page = page
   pagination.pageSize = pageSize
-  loadData()
+  void loadData()
 }
 
 function showUserDetail(user: User) {
@@ -252,54 +267,137 @@ function showUserDetail(user: User) {
 async function handleBan(id: number) {
   await userApi.ban(id)
   message.success('封禁成功')
-  loadData()
+  await loadData()
 }
 
 async function handleUnban(id: number) {
   await userApi.unban(id)
   message.success('解封成功')
-  loadData()
+  await loadData()
 }
 
-function getPlanColor(plan: string) {
-  const map: Record<string, string> = { free: 'default', pro: 'gold', enterprise: 'purple' }
-  return map[plan] || 'default'
+function getPlanColor(plan: UserPlan) {
+  const map: Record<UserPlan, string> = {
+    free: 'default',
+    pro: 'gold',
+    enterprise: 'purple',
+  }
+  return map[plan]
 }
 
-function getPlanLabel(plan: string) {
-  const map: Record<string, string> = { free: '免费版', pro: 'Pro', enterprise: '企业版' }
-  return map[plan] || plan
+function getPlanLabel(plan: UserPlan) {
+  const map: Record<UserPlan, string> = {
+    free: '免费版',
+    pro: 'Pro',
+    enterprise: '企业版',
+  }
+  return map[plan]
 }
 
-function getDomainColor(domain: string) {
-  const map: Record<string, string> = { tech: 'blue', finance: 'orange', policy: 'green', commerce: 'pink' }
-  return map[domain] || 'default'
+function getDomainColor(domain: ArticleDomain) {
+  const map: Record<ArticleDomain, string> = {
+    tech: 'blue',
+    finance: 'orange',
+    policy: 'green',
+    commerce: 'pink',
+  }
+  return map[domain]
 }
 
-function getDomainLabel(domain: string) {
-  const map: Record<string, string> = { tech: '科技', finance: '财经', policy: '政策', commerce: '商情' }
-  return map[domain] || domain
+function getDomainLabel(domain: ArticleDomain) {
+  const map: Record<ArticleDomain, string> = {
+    tech: '科技',
+    finance: '财经',
+    policy: '政策',
+    commerce: '商情',
+  }
+  return map[domain]
 }
 
-function getNoiseLevelLabel(level: string) {
-  const map: Record<string, string> = {
+function getNoiseLevelLabel(level: NoiseLevel) {
+  const map: Record<NoiseLevel, string> = {
     open: '视野全开',
     focus: '核心聚焦',
     major: '重大事件',
     quake: '行业地震',
   }
-  return map[level] || level
+  return map[level]
 }
 
-function getRegionLabel(region?: string) {
-  const map: Record<string, string> = { all: '全部地区', domestic: '仅国内', international: '仅国际' }
-  return map[region || 'all'] || '全部地区'
+function getRegionLabel(region?: RegionPreference) {
+  const map: Record<NonNullable<RegionPreference> | 'all', string> = {
+    all: '全部地区',
+    domestic: '仅国内',
+    international: '仅国际',
+  }
+  return map[region || 'all']
 }
 
 function getSentimentLabel(sentiment: string) {
-  const map: Record<string, string> = { positive: '正面', negative: '负面', neutral: '中性' }
-  return map[sentiment] || sentiment
+  const map: Record<SentimentKey, string> = {
+    positive: '正面',
+    negative: '负面',
+    neutral: '中性',
+  }
+  return map[sentiment as SentimentKey] || sentiment
 }
 
-onMounted(loadData)
+onMounted(() => {
+  void loadData()
+})
 </script>
+
+<style scoped>
+.user-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #141414;
+}
+
+.page-header p {
+  margin: 0;
+  color: #8c8c8c;
+  line-height: 1.6;
+}
+
+.filter-card,
+.table-card {
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.nickname-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nickname-avatar {
+  background-color: #00b96b;
+}
+
+.noise-text {
+  font-size: 12px;
+  color: #666;
+}
+
+.detail-divider {
+  margin: 16px 0 12px;
+  font-size: 14px;
+}
+
+.empty-text {
+  color: #999;
+}
+
+:deep(.ant-card-body) {
+  padding: 20px;
+}
+</style>

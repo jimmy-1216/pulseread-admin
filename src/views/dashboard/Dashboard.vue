@@ -1,194 +1,113 @@
 <template>
-  <div class="dashboard">
-    <!-- 页面标题 -->
-    <div class="page-header">
+  <div class="dashboard-page">
+    <section class="dashboard-hero">
       <div>
-        <h1 class="page-title">仪表板</h1>
-        <p class="page-desc">欢迎回来，管理员。以下是今日系统概述。</p>
+        <p class="hero-kicker">PulseRead Admin</p>
+        <h1 class="hero-title">内容运营总览</h1>
+        <p class="hero-description">
+          聚合查看资讯、用户、反馈与系统状态，帮助运营与编辑团队更快完成日常决策。
+        </p>
       </div>
-      <div class="header-actions">
-        <span class="last-update">最后更新: {{ lastUpdateTime }}</span>
-        <a-button @click="refreshData" :loading="refreshing">
+      <div class="hero-actions">
+        <div class="hero-meta">
+          <span>最后更新</span>
+          <strong>{{ lastUpdateTime }}</strong>
+        </div>
+        <a-button type="primary" :loading="refreshing" @click="refreshData">
           <template #icon><ReloadOutlined /></template>
-          刷新
+          刷新数据
         </a-button>
       </div>
-    </div>
+    </section>
 
-    <!-- 统计卡片 -->
-    <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
-      <a-col :span="6">
-        <a-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #E6F4FF; color: #1677FF">
-              <FileTextOutlined />
+    <a-row :gutter="[16, 16]" class="stats-row">
+      <a-col v-for="item in summaryCards" :key="item.label" :xs="24" :sm="12" :xl="6">
+        <a-card class="summary-card" :bordered="false">
+          <div class="summary-card__inner">
+            <div class="summary-card__icon" :style="{ background: item.iconBg, color: item.iconColor }">
+              <component :is="item.icon" />
             </div>
-            <div class="stat-info">
-              <div class="stat-label">总资讯数</div>
-              <div class="stat-value">{{ stats.totalArticles.toLocaleString() }}</div>
-              <div class="stat-delta positive">
-                <ArrowUpOutlined /> 较昨日 +{{ stats.totalArticlesDelta }}
-              </div>
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #F6FFED; color: #52C41A">
-              <TeamOutlined />
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">活跃用户</div>
-              <div class="stat-value">{{ stats.activeUsers.toLocaleString() }}</div>
-              <div class="stat-delta positive">
-                <ArrowUpOutlined /> 较昨日 +{{ stats.activeUsersDelta }}
-              </div>
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #FFF7E6; color: #FA8C16">
-              <MessageOutlined />
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">待处理反馈</div>
-              <div class="stat-value">{{ stats.pendingFeedbacks }}</div>
-              <div class="stat-delta warning">
-                <ArrowUpOutlined /> 较昨日 +{{ stats.pendingFeedbacksDelta }}
-              </div>
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #F9F0FF; color: #722ED1">
-              <SafetyOutlined />
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">系统可用率</div>
-              <div class="stat-value">{{ stats.systemUptime }}</div>
-              <div class="stat-delta positive">本月稳定运行</div>
+            <div class="summary-card__content">
+              <span class="summary-card__label">{{ item.label }}</span>
+              <strong class="summary-card__value">{{ item.value }}</strong>
+              <span class="summary-card__desc" :class="item.deltaClass">{{ item.description }}</span>
             </div>
           </div>
         </a-card>
       </a-col>
     </a-row>
 
-    <!-- 图表区域 -->
-    <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
-      <!-- 资讯发布趋势 -->
-      <a-col :span="14">
-        <a-card title="资讯发布趋势" :body-style="{ padding: '16px' }">
+    <a-row :gutter="[16, 16]" class="chart-row">
+      <a-col :xs="24" :xl="15">
+        <a-card class="panel-card" :bordered="false">
+          <template #title>资讯发布趋势</template>
           <template #extra>
-            <span style="color: #999; font-size: 12px; margin-right: 12px">近 {{ trendRange === '7days' ? 7 : trendRange === '30days' ? 30 : 90 }} 天每日发布量</span>
-            <a-radio-group v-model:value="trendRange" size="small" button-style="solid" @change="loadTrendData">
+            <a-radio-group v-model:value="trendRange" size="small" button-style="solid" @change="handleTrendRangeChange">
               <a-radio-button value="7days">7天</a-radio-button>
               <a-radio-button value="30days">30天</a-radio-button>
               <a-radio-button value="90days">90天</a-radio-button>
             </a-radio-group>
           </template>
-          <div ref="trendChartRef" style="height: 200px"></div>
+          <div ref="trendChartRef" class="chart-box"></div>
         </a-card>
       </a-col>
-
-      <!-- 分类分布 -->
-      <a-col :span="10">
-        <a-card title="分类分布" :body-style="{ padding: '16px' }">
+      <a-col :xs="24" :xl="9">
+        <a-card class="panel-card" :bordered="false">
+          <template #title>资讯分类分布</template>
           <template #extra>
-            <span style="color: #999; font-size: 12px">资讯分类占比</span>
+            <span class="panel-hint">按当前资讯库存统计</span>
           </template>
-          <div ref="pieChartRef" style="height: 200px"></div>
+          <div ref="pieChartRef" class="chart-box chart-box--pie"></div>
         </a-card>
       </a-col>
     </a-row>
 
-    <!-- 最近活动 + 快捷操作 + 系统状态 -->
     <a-row :gutter="[16, 16]">
-      <!-- 最近活动 -->
-      <a-col :span="14">
-        <a-card title="最近活动">
+      <a-col :xs="24" :xl="15">
+        <a-card class="panel-card" :bordered="false">
+          <template #title>最近活动</template>
           <template #extra>
-            <a-button type="link" size="small" @click="$router.push('/feedback')">查看全部</a-button>
+            <a-button type="link" @click="router.push('/feedback')">查看反馈</a-button>
           </template>
-          <a-list :data-source="activities" :split="false">
-            <template #renderItem="{ item }">
-              <a-list-item style="padding: 8px 0">
-                <div class="activity-item">
-                  <span
-                    class="activity-dot"
-                    :style="{ background: getActivityColor(item.status) }"
-                  ></span>
-                  <span class="activity-content">{{ item.content }}</span>
-                  <span class="activity-time">{{ item.timeAgo }}</span>
-                  <a-tag
-                    :color="getActivityTagColor(item.status)"
-                    style="margin-left: 8px"
-                  >
-                    {{ getActivityStatusText(item.status) }}
-                  </a-tag>
-                </div>
-              </a-list-item>
-            </template>
-          </a-list>
+          <div class="activity-list">
+            <div v-for="item in activities" :key="item.id" class="activity-item">
+              <span class="activity-dot" :style="{ background: getActivityColor(item.status) }"></span>
+              <div class="activity-main">
+                <div class="activity-content">{{ item.content }}</div>
+                <div class="activity-time">{{ item.timeAgo }}</div>
+              </div>
+              <a-tag :color="getActivityTagColor(item.status)">
+                {{ getActivityStatusText(item.status) }}
+              </a-tag>
+            </div>
+          </div>
         </a-card>
       </a-col>
-
-      <!-- 快捷操作 + 系统状态 -->
-      <a-col :span="10">
-        <a-card title="快捷操作" style="margin-bottom: 16px">
-          <a-row :gutter="[12, 12]">
-            <a-col :span="12">
-              <div class="quick-btn" @click="$router.push('/articles/create')">
-                <PlusOutlined style="font-size: 20px; color: #1677FF" />
-                <span>新增资讯</span>
+      <a-col :xs="24" :xl="9">
+        <a-card class="panel-card" :bordered="false" style="margin-bottom: 16px">
+          <template #title>快捷操作</template>
+          <div class="quick-grid">
+            <button v-for="item in quickActions" :key="item.label" class="quick-action" type="button" @click="router.push(item.path)">
+              <div class="quick-action__icon" :style="{ background: item.bg, color: item.color }">
+                <component :is="item.icon" />
               </div>
-            </a-col>
-            <a-col :span="12">
-              <div class="quick-btn" @click="$router.push('/feedback')">
-                <MessageOutlined style="font-size: 20px; color: #FA8C16" />
-                <span>处理反馈</span>
+              <div class="quick-action__text">
+                <strong>{{ item.label }}</strong>
+                <span>{{ item.description }}</span>
               </div>
-            </a-col>
-            <a-col :span="12">
-              <div class="quick-btn" @click="$router.push('/users')">
-                <TeamOutlined style="font-size: 20px; color: #52C41A" />
-                <span>用户管理</span>
-              </div>
-            </a-col>
-            <a-col :span="12">
-              <div class="quick-btn" @click="$router.push('/settings/noise')">
-                <SettingOutlined style="font-size: 20px; color: #722ED1" />
-                <span>降噪配置</span>
-              </div>
-            </a-col>
-          </a-row>
+            </button>
+          </div>
         </a-card>
 
-        <!-- 系统状态 -->
-        <a-card title="系统状态">
-          <div class="system-status-list">
-            <div class="status-item">
-              <span class="status-name">API 服务</span>
-              <span class="status-badge success">正常</span>
-            </div>
-            <div class="status-item">
-              <span class="status-name">数据库</span>
-              <span class="status-badge success">正常</span>
-            </div>
-            <div class="status-item">
-              <span class="status-name">AI 服务</span>
-              <span class="status-badge success">正常</span>
-            </div>
-            <div class="status-item">
-              <span class="status-name">CDN 节点</span>
-              <span class="status-badge warning">延迟偏高</span>
+        <a-card class="panel-card" :bordered="false">
+          <template #title>系统状态</template>
+          <div class="status-list">
+            <div v-for="item in systemStatus" :key="item.label" class="status-item">
+              <div>
+                <strong>{{ item.label }}</strong>
+                <p>{{ item.description }}</p>
+              </div>
+              <a-badge :status="item.status" :text="item.text" />
             </div>
           </div>
         </a-card>
@@ -198,254 +117,545 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
-import { dashboardApi } from '@/api'
-import type { DashboardStats, RecentActivity } from '@/types'
-import { MOCK_DASHBOARD_STATS, MOCK_RECENT_ACTIVITIES } from '@/utils/mockData'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
+import { dashboardApi } from '@/api'
+import type { DashboardStats, DistributionItem, RecentActivity, TrendPoint } from '@/types'
 import {
-  ReloadOutlined, FileTextOutlined, TeamOutlined, MessageOutlined,
-  SafetyOutlined, ArrowUpOutlined, PlusOutlined, SettingOutlined,
+  ArrowUpOutlined,
+  FileTextOutlined,
+  MessageOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SafetyOutlined,
+  SettingOutlined,
+  TeamOutlined,
 } from '@ant-design/icons-vue'
 
-const stats = ref<DashboardStats>(MOCK_DASHBOARD_STATS)
-const activities = ref<RecentActivity[]>(MOCK_RECENT_ACTIVITIES)
+const router = useRouter()
+
 const trendRange = ref<'7days' | '30days' | '90days'>('7days')
 const refreshing = ref(false)
-const lastUpdateTime = ref(dayjs().format('HH:mm'))
+const lastUpdateTime = ref(dayjs().format('YYYY-MM-DD HH:mm'))
+const stats = ref<DashboardStats>({
+  totalArticles: 0,
+  totalArticlesDelta: 0,
+  activeUsers: 0,
+  activeUsersDelta: 0,
+  pendingFeedbacks: 0,
+  pendingFeedbacksDelta: 0,
+  systemUptime: '0%',
+})
+const activities = ref<RecentActivity[]>([])
+const trendData = ref<TrendPoint>({ dates: [], values: [] })
+const distributionData = ref<DistributionItem[]>([])
 
 const trendChartRef = ref<HTMLElement | null>(null)
 const pieChartRef = ref<HTMLElement | null>(null)
 let trendChart: echarts.ECharts | null = null
 let pieChart: echarts.ECharts | null = null
 
-async function loadTrendData() {
-  const data = await dashboardApi.getTrendData(trendRange.value)
-  if (trendChart) {
-    trendChart.setOption({
-      xAxis: { data: data.dates },
-      series: [{ data: data.values }],
-    })
+const summaryCards = computed(() => [
+  {
+    label: '资讯总量',
+    value: stats.value.totalArticles.toLocaleString(),
+    description: `较昨日 +${stats.value.totalArticlesDelta}`,
+    deltaClass: 'is-up',
+    icon: FileTextOutlined,
+    iconBg: '#e8f3ff',
+    iconColor: '#1677ff',
+  },
+  {
+    label: '活跃用户',
+    value: stats.value.activeUsers.toLocaleString(),
+    description: `较昨日 +${stats.value.activeUsersDelta}`,
+    deltaClass: 'is-up',
+    icon: TeamOutlined,
+    iconBg: '#edf9ef',
+    iconColor: '#52c41a',
+  },
+  {
+    label: '待处理反馈',
+    value: stats.value.pendingFeedbacks.toLocaleString(),
+    description: `较昨日 +${stats.value.pendingFeedbacksDelta}`,
+    deltaClass: 'is-warning',
+    icon: MessageOutlined,
+    iconBg: '#fff5e8',
+    iconColor: '#fa8c16',
+  },
+  {
+    label: '系统可用率',
+    value: stats.value.systemUptime,
+    description: '当前服务稳定运行',
+    deltaClass: 'is-stable',
+    icon: SafetyOutlined,
+    iconBg: '#f5edff',
+    iconColor: '#722ed1',
+  },
+])
+
+const quickActions = [
+  { label: '新增资讯', description: '快速创建新内容', path: '/articles/create', icon: PlusOutlined, bg: '#e8f3ff', color: '#1677ff' },
+  { label: '处理反馈', description: '查看待办与回复', path: '/feedback', icon: MessageOutlined, bg: '#fff5e8', color: '#fa8c16' },
+  { label: '用户管理', description: '查看活跃与套餐', path: '/users', icon: TeamOutlined, bg: '#edf9ef', color: '#52c41a' },
+  { label: '降噪配置', description: '调整内容过滤策略', path: '/settings/noise', icon: SettingOutlined, bg: '#f5edff', color: '#722ed1' },
+]
+
+const systemStatus = computed(() => [
+  { label: 'API 服务', description: '接口请求链路正常', status: 'success' as const, text: '正常' },
+  { label: '数据库', description: '读写延迟处于低位', status: 'success' as const, text: '正常' },
+  { label: '任务调度', description: '内容抓取按计划执行', status: 'processing' as const, text: '运行中' },
+  { label: '告警通道', description: '存在少量高延迟告警', status: 'warning' as const, text: '关注中' },
+])
+
+async function fetchDashboardData() {
+  const [statsResult, activityResult, trendResult, distributionResult] = await Promise.all([
+    dashboardApi.getStats(),
+    dashboardApi.getRecentActivities(),
+    dashboardApi.getTrendData(trendRange.value),
+    dashboardApi.getDomainDistribution(),
+  ])
+
+  stats.value = statsResult
+  activities.value = activityResult
+  trendData.value = trendResult
+  distributionData.value = distributionResult
+  lastUpdateTime.value = dayjs().format('YYYY-MM-DD HH:mm')
+}
+
+function buildTrendOption(data: TrendPoint): echarts.EChartsOption {
+  return {
+    grid: { top: 16, right: 16, bottom: 30, left: 40 },
+    tooltip: { trigger: 'axis', formatter: '{b}<br/>发布量：{c} 条' },
+    xAxis: {
+      type: 'category',
+      data: data.dates,
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: '#e5e7eb' } },
+      axisLabel: { color: '#8c8c8c', fontSize: 12 },
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#f0f0f0' } },
+      axisLabel: { color: '#8c8c8c', fontSize: 12 },
+    },
+    series: [
+      {
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        data: data.values,
+        lineStyle: { color: '#00b96b', width: 3 },
+        itemStyle: { color: '#00b96b' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(0, 185, 107, 0.22)' },
+            { offset: 1, color: 'rgba(0, 185, 107, 0.02)' },
+          ]),
+        },
+      },
+    ],
+  }
+}
+
+function buildPieOption(data: DistributionItem[]): echarts.EChartsOption {
+  const colorMap: Record<string, string> = {
+    科技: '#1677ff',
+    财经: '#fa8c16',
+    政策: '#52c41a',
+    商情: '#eb2f96',
+  }
+
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: {
+      bottom: 0,
+      icon: 'circle',
+      textStyle: { color: '#666', fontSize: 12 },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['48%', '72%'],
+        center: ['50%', '42%'],
+        label: { show: false },
+        emphasis: { scale: true, scaleSize: 6 },
+        data: data.map((item) => ({
+          ...item,
+          itemStyle: { color: colorMap[item.name] || '#1677ff' },
+        })),
+      },
+    ],
+  }
+}
+
+function renderCharts() {
+  if (trendChartRef.value) {
+    trendChart = trendChart || echarts.init(trendChartRef.value)
+    trendChart.setOption(buildTrendOption(trendData.value))
+  }
+
+  if (pieChartRef.value) {
+    pieChart = pieChart || echarts.init(pieChartRef.value)
+    pieChart.setOption(buildPieOption(distributionData.value))
   }
 }
 
 async function refreshData() {
   refreshing.value = true
   try {
-    stats.value = await dashboardApi.getStats()
-    activities.value = await dashboardApi.getRecentActivities()
-    await loadTrendData()
-    lastUpdateTime.value = dayjs().format('HH:mm')
+    await fetchDashboardData()
+    await nextTick()
+    renderCharts()
   } finally {
     refreshing.value = false
   }
 }
 
-function initTrendChart(data: { dates: string[]; values: number[] }) {
-  if (!trendChartRef.value) return
-  trendChart = echarts.init(trendChartRef.value)
-  trendChart.setOption({
-    grid: { top: 10, right: 10, bottom: 30, left: 40 },
-    xAxis: {
-      type: 'category',
-      data: data.dates,
-      axisLine: { lineStyle: { color: '#e8e8e8' } },
-      axisTick: { show: false },
-      axisLabel: { color: '#999', fontSize: 11 },
-    },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: '#f0f0f0' } },
-      axisLabel: { color: '#999', fontSize: 11 },
-    },
-    series: [
-      {
-        type: 'line',
-        data: data.values,
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { color: '#00B96B', width: 2 },
-        itemStyle: { color: '#00B96B' },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(0, 185, 107, 0.2)' },
-            { offset: 1, color: 'rgba(0, 185, 107, 0.02)' },
-          ]),
-        },
-      },
-    ],
-    tooltip: {
-      trigger: 'axis',
-      formatter: '{b}: {c} 条',
-    },
-  })
+async function handleTrendRangeChange() {
+  trendData.value = await dashboardApi.getTrendData(trendRange.value)
+  renderCharts()
 }
 
-function initPieChart(data: { name: string; value: number; color: string }[]) {
-  if (!pieChartRef.value) return
-  pieChart = echarts.init(pieChartRef.value)
-  pieChart.setOption({
-    legend: {
-      bottom: 0,
-      itemWidth: 10,
-      itemHeight: 10,
-      textStyle: { fontSize: 11, color: '#666' },
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['45%', '70%'],
-        center: ['50%', '42%'],
-        data: data.map((d) => ({ name: d.name, value: d.value, itemStyle: { color: d.color } })),
-        label: { show: false },
-        emphasis: { label: { show: false } },
-      },
-    ],
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c}% ({d}%)',
-    },
-  })
+function handleResize() {
+  trendChart?.resize()
+  pieChart?.resize()
 }
 
-function getActivityColor(status: string) {
-  const map: Record<string, string> = {
-    success: '#52C41A',
-    pending: '#FA8C16',
-    warning: '#FAAD14',
-    error: '#FF4D4F',
+function getActivityColor(status: RecentActivity['status']) {
+  const map = {
+    success: '#52c41a',
+    pending: '#1677ff',
+    warning: '#faad14',
+    error: '#ff4d4f',
   }
-  return map[status] || '#999'
+  return map[status]
 }
 
-function getActivityTagColor(status: string) {
-  const map: Record<string, string> = {
+function getActivityTagColor(status: RecentActivity['status']) {
+  const map = {
     success: 'success',
-    pending: 'warning',
-    warning: 'orange',
+    pending: 'processing',
+    warning: 'warning',
     error: 'error',
   }
-  return map[status] || 'default'
+  return map[status]
 }
 
-function getActivityStatusText(status: string) {
-  const map: Record<string, string> = {
+function getActivityStatusText(status: RecentActivity['status']) {
+  const map = {
     success: '成功',
-    pending: '待处理',
-    warning: '警告',
-    error: '错误',
+    pending: '处理中',
+    warning: '预警',
+    error: '异常',
   }
-  return map[status] || status
+  return map[status]
 }
 
 onMounted(async () => {
-  const [trendData, domainData] = await Promise.all([
-    dashboardApi.getTrendData('7days'),
-    dashboardApi.getDomainDistribution(),
-  ])
-  await nextTick()
-  initTrendChart(trendData)
-  initPieChart(domainData)
+  await refreshData()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  trendChart?.dispose()
+  pieChart?.dispose()
+  trendChart = null
+  pieChart = null
 })
 </script>
 
 <style scoped>
-.dashboard { padding: 0; }
-.page-header {
+.dashboard-page {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-hero {
+  display: flex;
   align-items: flex-start;
-  margin-bottom: 24px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0f172a 0%, #1f3a2d 60%, #0f766e 100%);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
 }
-.page-title {
-  font-size: 24px;
+
+.hero-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.hero-title {
+  margin: 0 0 8px;
+  font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 4px;
+  line-height: 1.2;
 }
-.page-desc { color: #999; font-size: 13px; }
-.header-actions {
+
+.hero-description {
+  max-width: 640px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.7;
+}
+
+.hero-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.last-update { color: #999; font-size: 12px; }
-.stat-card { border-radius: 8px; }
-.stat-content {
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.hero-meta strong {
+  font-size: 14px;
+  color: #fff;
+}
+
+.stats-row,
+.chart-row {
+  margin: 0;
+}
+
+.summary-card,
+.panel-card {
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.summary-card__inner {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+
+.summary-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 22px;
 }
-.stat-label { color: #999; font-size: 13px; margin-bottom: 4px; }
-.stat-value { font-size: 28px; font-weight: 700; color: #1a1a1a; line-height: 1; margin-bottom: 4px; }
-.stat-delta { font-size: 12px; }
-.stat-delta.positive { color: #52C41A; }
-.stat-delta.warning { color: #FA8C16; }
+
+.summary-card__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-card__label {
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.summary-card__value {
+  color: #141414;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.summary-card__desc {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.summary-card__desc.is-up {
+  color: #16a34a;
+}
+
+.summary-card__desc.is-warning {
+  color: #d97706;
+}
+
+.summary-card__desc.is-stable {
+  color: #1677ff;
+}
+
+.panel-hint {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.chart-box {
+  width: 100%;
+  height: 280px;
+}
+
+.chart-box--pie {
+  height: 280px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .activity-item {
   display: flex;
   align-items: center;
-  width: 100%;
-  gap: 8px;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
 }
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
 .activity-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.activity-content {
+
+.activity-main {
   flex: 1;
-  font-size: 13px;
-  color: #333;
+  min-width: 0;
 }
+
+.activity-content {
+  color: #141414;
+  font-weight: 500;
+}
+
 .activity-time {
-  color: #999;
+  margin-top: 4px;
+  color: #8c8c8c;
   font-size: 12px;
-  white-space: nowrap;
 }
-.quick-btn {
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quick-action {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-action:hover {
+  transform: translateY(-2px);
+  border-color: #d9f7e8;
+  box-shadow: 0 12px 24px rgba(0, 185, 107, 0.08);
+}
+
+.quick-action__icon {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 13px;
-  color: #666;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  font-size: 18px;
 }
-.quick-btn:hover {
-  border-color: #00B96B;
-  background: #f6ffed;
-  color: #00B96B;
+
+.quick-action__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.system-status-list { display: flex; flex-direction: column; gap: 12px; }
+
+.quick-action__text strong {
+  color: #141414;
+  font-size: 14px;
+}
+
+.quick-action__text span {
+  color: #8c8c8c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .status-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fafafa;
 }
-.status-name { color: #666; font-size: 13px; }
-.status-badge {
+
+.status-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #141414;
+}
+
+.status-item p {
+  margin: 0;
+  color: #8c8c8c;
   font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
 }
-.status-badge.success { background: #f6ffed; color: #52C41A; }
-.status-badge.warning { background: #fff7e6; color: #FA8C16; }
+
+:deep(.ant-card-head) {
+  border-bottom: none;
+}
+
+:deep(.ant-card-head-title) {
+  font-weight: 600;
+}
+
+@media (max-width: 992px) {
+  .dashboard-hero {
+    flex-direction: column;
+  }
+
+  .hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style>

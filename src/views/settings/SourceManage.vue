@@ -1,42 +1,51 @@
 <template>
-  <div class="source-manage">
-    <!-- 统计卡片 -->
-    <a-row :gutter="16" style="margin-bottom: 20px">
-      <a-col :span="6" v-for="stat in stats" :key="stat.label">
-        <a-card size="small">
+  <div class="source-page">
+    <section class="page-header">
+      <div>
+        <h1>数据来源管理</h1>
+        <p>统一维护资讯来源、抓取频率、可信度与启停状态，并支持抓取测试与快速筛选。</p>
+      </div>
+      <a-button type="primary" @click="showAddModal">
+        <template #icon><PlusOutlined /></template>
+        新增来源
+      </a-button>
+    </section>
+
+    <a-row :gutter="16">
+      <a-col v-for="stat in stats" :key="stat.label" :xs="24" :sm="12" :xl="6">
+        <a-card class="stat-card" :bordered="false">
           <a-statistic
             :title="stat.label"
             :value="stat.value"
             :value-style="{ color: stat.color, fontSize: '24px', fontWeight: 700 }"
           >
             <template #suffix>
-              <span style="font-size: 14px; color: #999">{{ stat.unit }}</span>
+              <span class="stat-unit">{{ stat.unit }}</span>
             </template>
           </a-statistic>
         </a-card>
       </a-col>
     </a-row>
 
-    <!-- 筛选区 -->
-    <a-card style="margin-bottom: 16px">
-      <a-row :gutter="[16, 0]" align="middle">
-        <a-col :span="6">
+    <a-card class="filter-card" :bordered="false">
+      <a-row :gutter="[16, 16]" align="middle">
+        <a-col :xs="24" :sm="12" :xl="8">
           <a-input-search
             v-model:value="filters.keyword"
             placeholder="搜索来源名称或域名..."
-            @search="applyFilter"
             allow-clear
+            @search="applyFilter"
             @change="applyFilter"
           />
         </a-col>
-        <a-col :span="4">
+        <a-col :xs="24" :sm="12" :xl="4">
           <a-select v-model:value="filters.region" style="width: 100%" @change="applyFilter">
             <a-select-option value="all">全部地区</a-select-option>
             <a-select-option value="domestic">国内</a-select-option>
             <a-select-option value="international">国际</a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="4">
+        <a-col :xs="24" :sm="12" :xl="4">
           <a-select v-model:value="filters.domain" style="width: 100%" @change="applyFilter">
             <a-select-option value="all">全部领域</a-select-option>
             <a-select-option value="tech">科技</a-select-option>
@@ -45,105 +54,87 @@
             <a-select-option value="commerce">商情</a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="4">
+        <a-col :xs="24" :sm="12" :xl="4">
           <a-select v-model:value="filters.status" style="width: 100%" @change="applyFilter">
             <a-select-option value="all">全部状态</a-select-option>
             <a-select-option value="active">启用</a-select-option>
             <a-select-option value="inactive">禁用</a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="6" style="display: flex; justify-content: flex-end; gap: 8px">
-          <a-button @click="resetFilters">重置</a-button>
-          <a-button type="primary" @click="showAddModal">
-            <template #icon><PlusOutlined /></template>
-            新增来源
-          </a-button>
+        <a-col :xs="24" :xl="4" class="filter-actions">
+          <a-button @click="resetFilters">重置筛选</a-button>
         </a-col>
       </a-row>
     </a-card>
 
-    <!-- 数据表格 -->
-    <a-card>
+    <a-card class="table-card" :bordered="false">
       <a-table
         :columns="columns"
         :data-source="filteredSources"
         row-key="id"
         size="middle"
-        :pagination="{ pageSize: 10, showTotal: (t: number) => `共 ${t} 个来源` }"
+        :pagination="{ pageSize: 10, showTotal: (total: number) => `共 ${total} 个来源` }"
       >
         <template #bodyCell="{ column, record }">
-          <!-- 来源名称 -->
           <template v-if="column.key === 'name'">
             <div>
-              <div style="font-weight: 600; color: #1a1a1a">{{ record.name }}</div>
-              <div style="font-size: 12px; color: #999; margin-top: 2px">
-                <a :href="record.url" target="_blank" style="color: #1677FF">{{ record.url }}</a>
+              <div class="source-name">{{ record.name }}</div>
+              <div class="source-url">
+                <a :href="record.url" target="_blank" rel="noreferrer">{{ record.url }}</a>
               </div>
             </div>
           </template>
 
-          <!-- 地区 -->
           <template v-else-if="column.key === 'region'">
             <a-tag :color="record.region === 'domestic' ? 'blue' : 'purple'">
               {{ record.region === 'domestic' ? '国内' : '国际' }}
             </a-tag>
           </template>
 
-          <!-- 领域 -->
           <template v-else-if="column.key === 'domain'">
-            <a-tag :color="domainColorMap[record.domain]">
-              {{ domainLabelMap[record.domain] || record.domain }}
+            <a-tag :color="getDomainColor(record.domain)">
+              {{ getDomainLabel(record.domain) }}
             </a-tag>
           </template>
 
-          <!-- 可信度评分 -->
           <template v-else-if="column.key === 'credibility'">
-            <div style="display: flex; align-items: center; gap: 8px">
+            <div class="credibility-cell">
               <a-progress
                 :percent="record.credibility"
                 :stroke-color="getCredibilityColor(record.credibility)"
                 size="small"
-                style="width: 80px; margin: 0"
                 :show-info="false"
+                style="width: 88px; margin: 0"
               />
-              <span :style="{ color: getCredibilityColor(record.credibility), fontWeight: 600 }">
+              <span :style="{ color: getCredibilityColor(record.credibility) }" class="credibility-value">
                 {{ record.credibility }}
               </span>
             </div>
           </template>
 
-          <!-- 抓取频率 -->
           <template v-else-if="column.key === 'fetchInterval'">
             <a-tag>{{ record.fetchInterval }}</a-tag>
           </template>
 
-          <!-- 今日抓取 -->
           <template v-else-if="column.key === 'todayCount'">
-            <span style="font-weight: 600; color: #1677FF">{{ record.todayCount }}</span>
-            <span style="color: #999; font-size: 12px"> 条</span>
+            <span class="today-count">{{ record.todayCount }}</span>
+            <span class="today-count__unit">条</span>
           </template>
 
-          <!-- 状态 -->
           <template v-else-if="column.key === 'status'">
             <a-switch
               :checked="record.status === 'active'"
               checked-children="启用"
               un-checked-children="禁用"
-              @change="(val: boolean) => handleToggle(record.id, val)"
+              @change="(value: boolean) => handleToggle(record.id, value)"
             />
           </template>
 
-          <!-- 操作 -->
           <template v-else-if="column.key === 'action'">
             <a-space>
               <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
               <a-button type="link" size="small" @click="handleTestFetch(record)">测试</a-button>
-              <a-popconfirm
-                title="确定删除该数据来源？"
-                ok-text="确定"
-                cancel-text="取消"
-                @confirm="handleDelete(record.id)"
-              >
+              <a-popconfirm title="确定删除该数据来源？" ok-text="确定" cancel-text="取消" @confirm="handleDelete(record.id)">
                 <a-button type="link" size="small" danger>删除</a-button>
               </a-popconfirm>
             </a-space>
@@ -152,14 +143,13 @@
       </a-table>
     </a-card>
 
-    <!-- 新增/编辑弹窗 -->
     <a-modal
       v-model:open="modalVisible"
       :title="editingId ? '编辑数据来源' : '新增数据来源'"
-      width="600px"
-      @ok="handleSubmit"
+      width="640px"
       ok-text="保存"
       cancel-text="取消"
+      @ok="handleSubmit"
     >
       <a-form :model="form" layout="vertical" style="margin-top: 16px">
         <a-row :gutter="16">
@@ -174,6 +164,7 @@
             </a-form-item>
           </a-col>
         </a-row>
+
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="所属地区" required>
@@ -194,10 +185,16 @@
             </a-form-item>
           </a-col>
         </a-row>
+
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="可信度评分（0-100）">
-              <a-slider v-model:value="form.credibility" :min="0" :max="100" :marks="{ 0: '0', 50: '50', 100: '100' }" />
+              <a-slider
+                v-model:value="form.credibility"
+                :min="0"
+                :max="100"
+                :marks="{ 0: '0', 50: '50', 100: '100' }"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -214,6 +211,7 @@
             </a-form-item>
           </a-col>
         </a-row>
+
         <a-form-item label="RSS/API 地址">
           <a-input v-model:value="form.rssUrl" placeholder="RSS 或 API 抓取地址（选填）" />
         </a-form-item>
@@ -223,16 +221,10 @@
       </a-form>
     </a-modal>
 
-    <!-- 测试抓取结果弹窗 -->
-    <a-modal
-      v-model:open="testModalVisible"
-      title="测试抓取结果"
-      width="600px"
-      :footer="null"
-    >
-      <div v-if="testLoading" style="text-align: center; padding: 40px">
+    <a-modal v-model:open="testModalVisible" title="测试抓取结果" width="600px" :footer="null">
+      <div v-if="testLoading" class="test-loading">
         <a-spin size="large" />
-        <div style="margin-top: 16px; color: #666">正在抓取 {{ testingSource?.name }}...</div>
+        <div class="test-loading__text">正在抓取 {{ testingSource?.name }}...</div>
       </div>
       <div v-else>
         <a-alert
@@ -241,9 +233,9 @@
           show-icon
           style="margin-bottom: 16px"
         />
-        <div v-for="item in testResult" :key="item.title" style="padding: 12px 0; border-bottom: 1px solid #f0f0f0">
-          <div style="font-weight: 600; margin-bottom: 4px">{{ item.title }}</div>
-          <div style="font-size: 12px; color: #999">{{ item.publishTime }} · AI评分: {{ item.score }}</div>
+        <div v-for="item in testResult" :key="item.title" class="test-item">
+          <div class="test-item__title">{{ item.title }}</div>
+          <div class="test-item__meta">{{ item.publishTime }} · AI评分: {{ item.score }}</div>
         </div>
       </div>
     </a-modal>
@@ -251,140 +243,204 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
-import { sourceApi } from '@/api/index'
+import { sourceApi } from '@/api'
+import type { ArticleDomain, ArticleRegion, Source, SourcePayload, SourceStatus } from '@/types'
 
-interface Source {
-  id: number
-  name: string
-  url: string
-  region: 'domestic' | 'international'
-  domain: string
-  credibility: number
-  fetchInterval: string
-  rssUrl: string
-  remark: string
-  todayCount: number
-  status: 'active' | 'inactive'
+type RegionFilter = ArticleRegion | 'all'
+type DomainFilter = ArticleDomain | 'all'
+type StatusFilter = SourceStatus | 'all'
+
+type SourceFilters = {
+  keyword: string
+  region: RegionFilter
+  domain: DomainFilter
+  status: StatusFilter
 }
 
-const domainColorMap: Record<string, string> = {
-  tech: 'blue', finance: 'orange', policy: 'green', commerce: 'pink',
+const domainColorMap: Record<ArticleDomain, string> = {
+  tech: 'blue',
+  finance: 'orange',
+  policy: 'green',
+  commerce: 'pink',
 }
-const domainLabelMap: Record<string, string> = {
-  tech: '科技', finance: '财经', policy: '政策', commerce: '商情',
+
+const domainLabelMap: Record<ArticleDomain, string> = {
+  tech: '科技',
+  finance: '财经',
+  policy: '政策',
+  commerce: '商情',
 }
 
 const sources = ref<Source[]>([])
+const modalVisible = ref(false)
+const editingId = ref<number | null>(null)
+const testModalVisible = ref(false)
+const testLoading = ref(false)
+const testingSource = ref<Source | null>(null)
+const testResult = ref<Array<{ title: string; publishTime: string; score: number }>>([])
 
-// 初始化时加载数据
-onMounted(async () => {
-  const data = await sourceApi.getList()
-  sources.value = data
+const filters = reactive<SourceFilters>({
+  keyword: '',
+  region: 'all',
+  domain: 'all',
+  status: 'all',
 })
 
-const filters = reactive({ keyword: '', region: 'all', domain: 'all', status: 'all' })
+const createInitialForm = (): SourcePayload => ({
+  name: '',
+  url: '',
+  region: 'domestic',
+  domain: 'tech',
+  credibility: 80,
+  fetchInterval: '1h',
+  rssUrl: '',
+  remark: '',
+  todayCount: 0,
+  status: 'active',
+})
+
+const form = reactive<SourcePayload>(createInitialForm())
 
 const filteredSources = computed(() => {
-  return sources.value.filter((s) => {
-    if (filters.keyword && !s.name.includes(filters.keyword) && !s.url.includes(filters.keyword)) return false
-    if (filters.region !== 'all' && s.region !== filters.region) return false
-    if (filters.domain !== 'all' && s.domain !== filters.domain) return false
-    if (filters.status !== 'all' && s.status !== filters.status) return false
+  return sources.value.filter((item) => {
+    if (filters.keyword && !item.name.includes(filters.keyword) && !item.url.includes(filters.keyword)) {
+      return false
+    }
+    if (filters.region !== 'all' && item.region !== filters.region) {
+      return false
+    }
+    if (filters.domain !== 'all' && item.domain !== filters.domain) {
+      return false
+    }
+    if (filters.status !== 'all' && item.status !== filters.status) {
+      return false
+    }
     return true
   })
 })
 
-const stats = computed(() => [
-  { label: '数据来源总数', value: sources.value.length, unit: '个', color: '#1677FF' },
-  { label: '启用中', value: sources.value.filter((s) => s.status === 'active').length, unit: '个', color: '#52C41A' },
-  { label: '今日抓取总量', value: sources.value.reduce((sum, s) => sum + s.todayCount, 0), unit: '条', color: '#FA8C16' },
-  { label: '平均可信度', value: Math.round(sources.value.reduce((sum, s) => sum + s.credibility, 0) / sources.value.length), unit: '分', color: '#722ED1' },
-])
+const stats = computed(() => {
+  const total = sources.value.length
+  const totalCredibility = sources.value.reduce((sum, item) => sum + item.credibility, 0)
 
-const columns = [
-  { title: '来源名称', key: 'name', width: '22%' },
-  { title: '地区', key: 'region', width: 80 },
-  { title: '领域', key: 'domain', width: 80 },
-  { title: '可信度', key: 'credibility', width: 160 },
-  { title: '抓取频率', key: 'fetchInterval', width: 110 },
-  { title: '今日抓取', key: 'todayCount', width: 100 },
-  { title: '状态', key: 'status', width: 90 },
-  { title: '操作', key: 'action', width: 150 },
-]
-
-const modalVisible = ref(false)
-const editingId = ref<number | null>(null)
-const form = reactive<Source>({
-  id: 0, name: '', url: '', region: 'domestic', domain: 'tech',
-  credibility: 80, fetchInterval: '1h', rssUrl: '', remark: '', todayCount: 0, status: 'active',
+  return [
+    { label: '数据来源总数', value: total, unit: '个', color: '#1677FF' },
+    { label: '启用中', value: sources.value.filter((item) => item.status === 'active').length, unit: '个', color: '#52C41A' },
+    { label: '今日抓取总量', value: sources.value.reduce((sum, item) => sum + item.todayCount, 0), unit: '条', color: '#FA8C16' },
+    { label: '平均可信度', value: total ? Math.round(totalCredibility / total) : 0, unit: '分', color: '#722ED1' },
+  ]
 })
 
-const testModalVisible = ref(false)
-const testLoading = ref(false)
-const testingSource = ref<Source | null>(null)
-const testResult = ref<{ title: string; publishTime: string; score: number }[]>([])
+const columns = [
+  { title: '来源名称', key: 'name', width: '24%' },
+  { title: '地区', key: 'region', width: 90 },
+  { title: '领域', key: 'domain', width: 90 },
+  { title: '可信度', key: 'credibility', width: 170 },
+  { title: '抓取频率', key: 'fetchInterval', width: 120 },
+  { title: '今日抓取', key: 'todayCount', width: 110 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '操作', key: 'action', width: 170 },
+]
 
-function applyFilter() { /* filteredSources 是 computed，自动响应 */ }
+function applyFilter() {
+  return filteredSources.value
+}
 
 function resetFilters() {
-  Object.assign(filters, { keyword: '', region: 'all', domain: 'all', status: 'all' })
+  Object.assign(filters, {
+    keyword: '',
+    region: 'all',
+    domain: 'all',
+    status: 'all',
+  })
+}
+
+function resetForm() {
+  Object.assign(form, createInitialForm())
+}
+
+async function loadSources() {
+  sources.value = await sourceApi.getList()
 }
 
 function showAddModal() {
   editingId.value = null
-  Object.assign(form, {
-    id: 0, name: '', url: '', region: 'domestic', domain: 'tech',
-    credibility: 80, fetchInterval: '1h', rssUrl: '', remark: '', todayCount: 0, status: 'active',
-  })
+  resetForm()
   modalVisible.value = true
 }
 
 function handleEdit(record: Source) {
   editingId.value = record.id
-  Object.assign(form, { ...record })
+  Object.assign(form, {
+    name: record.name,
+    url: record.url,
+    region: record.region,
+    domain: record.domain,
+    credibility: record.credibility,
+    fetchInterval: record.fetchInterval,
+    rssUrl: record.rssUrl,
+    remark: record.remark,
+    todayCount: record.todayCount,
+    status: record.status,
+  })
   modalVisible.value = true
 }
 
 async function handleDelete(id: number) {
   try {
     await sourceApi.delete(id)
-    sources.value = await sourceApi.getList()
+    await loadSources()
     message.success('删除成功')
   } catch {
     message.error('删除失败')
   }
 }
 
-async function handleToggle(id: number, val: boolean) {
+async function handleToggle(id: number, value: boolean) {
   try {
-    await sourceApi.update(id, { status: val ? 'active' : 'inactive' })
-    sources.value = await sourceApi.getList()
-    message.success(val ? '已启用' : '已禁用')
+    await sourceApi.update(id, { status: value ? 'active' : 'inactive' })
+    await loadSources()
+    message.success(value ? '已启用' : '已禁用')
   } catch {
     message.error('操作失败')
   }
 }
 
 async function handleSubmit() {
-  if (!form.name || !form.url) {
+  if (!form.name.trim() || !form.url.trim()) {
     message.error('来源名称和网址不能为空')
     return
   }
+
+  const payload: SourcePayload = {
+    name: form.name,
+    url: form.url,
+    region: form.region,
+    domain: form.domain,
+    credibility: form.credibility,
+    fetchInterval: form.fetchInterval,
+    rssUrl: form.rssUrl,
+    remark: form.remark,
+    todayCount: form.todayCount,
+    status: form.status,
+  }
+
   try {
     if (editingId.value) {
-      await sourceApi.update(editingId.value, { ...form })
+      await sourceApi.update(editingId.value, payload)
       message.success('修改成功')
     } else {
-      await sourceApi.create({ ...form })
+      await sourceApi.create(payload)
       message.success('新增成功')
     }
-    sources.value = await sourceApi.getList()
     modalVisible.value = false
-  } catch (e: any) {
-    message.error(e.message || '操作失败')
+    await loadSources()
+  } catch (error: unknown) {
+    const err = error as Error
+    message.error(err.message || '操作失败')
   }
 }
 
@@ -393,7 +449,9 @@ async function handleTestFetch(record: Source) {
   testLoading.value = true
   testResult.value = []
   testModalVisible.value = true
-  await new Promise((r) => setTimeout(r, 1500))
+
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   testResult.value = [
     { title: `${record.name} 最新资讯：AI 技术突破引发行业震动`, publishTime: '刚刚', score: 87 },
     { title: `${record.name} 独家：全球市场今日关键动态`, publishTime: '5分钟前', score: 82 },
@@ -407,10 +465,135 @@ function getCredibilityColor(score: number) {
   if (score >= 75) return '#FA8C16'
   return '#FF4D4F'
 }
+
+function getDomainColor(domain: ArticleDomain) {
+  return domainColorMap[domain]
+}
+
+function getDomainLabel(domain: ArticleDomain) {
+  return domainLabelMap[domain]
+}
+
+onMounted(() => {
+  void loadSources()
+})
 </script>
 
 <style scoped>
-.source-manage :deep(.ant-progress-inner) {
+.source-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #141414;
+}
+
+.page-header p {
+  margin: 0;
+  color: #8c8c8c;
+  line-height: 1.6;
+}
+
+.stat-card,
+.filter-card,
+.table-card {
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.stat-unit {
+  font-size: 14px;
+  color: #999;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.source-name {
+  color: #141414;
+  font-weight: 600;
+}
+
+.source-url {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.credibility-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.credibility-value {
+  font-weight: 700;
+}
+
+.today-count {
+  color: #1677FF;
+  font-weight: 700;
+}
+
+.today-count__unit {
+  margin-left: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+.test-loading {
+  padding: 40px;
+  text-align: center;
+}
+
+.test-loading__text {
+  margin-top: 16px;
+  color: #666;
+}
+
+.test-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.test-item__title {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.test-item__meta {
+  font-size: 12px;
+  color: #999;
+}
+
+:deep(.ant-card-body) {
+  padding: 20px;
+}
+
+:deep(.ant-progress-inner) {
   background: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .filter-actions {
+    justify-content: flex-start;
+  }
 }
 </style>

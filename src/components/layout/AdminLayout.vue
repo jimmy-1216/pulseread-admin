@@ -1,107 +1,104 @@
 <template>
-  <a-layout style="min-height: 100vh">
-    <!-- 侧边栏 -->
+  <a-layout class="admin-shell">
     <a-layout-sider
       v-model:collapsed="collapsed"
       :trigger="null"
       collapsible
-      :width="200"
-      style="background: #141414"
+      :width="220"
+      class="admin-sider"
     >
-      <!-- Logo -->
       <div class="logo-area">
         <div class="logo-icon">微澜</div>
-        <span v-if="!collapsed" class="logo-text">PulseRead</span>
+        <div v-if="!collapsed" class="logo-copy">
+          <span class="logo-text">PulseRead</span>
+          <span class="logo-subtitle">Admin Console</span>
+        </div>
       </div>
 
-      <!-- 菜单 -->
       <a-menu
         v-model:selectedKeys="selectedKeys"
         v-model:openKeys="openKeys"
         theme="dark"
         mode="inline"
-        style="background: #141414; border-right: none"
+        class="admin-menu"
         @click="handleMenuClick"
+        @openChange="handleOpenChange"
       >
-        <a-menu-item-group>
-          <template #title>
-            <span style="color: #666; font-size: 11px">主要功能</span>
-          </template>
-          <a-menu-item key="dashboard">
-            <template #icon><DashboardOutlined /></template>
-            仪表板
-          </a-menu-item>
-          <a-menu-item key="analytics">
-            <template #icon><BarChartOutlined /></template>
-            数据统计
-          </a-menu-item>
-        </a-menu-item-group>
+        <template v-for="section in menuSections" :key="section.key">
+          <a-menu-item-group v-if="section.kind === 'group'">
+            <template #title>
+              <span class="menu-group-title">{{ section.title }}</span>
+            </template>
+            <a-menu-item v-for="item in section.items" :key="item.key">
+              <template #icon>
+                <component :is="item.icon" />
+              </template>
+              <span class="menu-item-label">{{ item.label }}</span>
+              <a-badge
+                v-if="item.badgeCount"
+                :count="item.badgeCount"
+                :offset="[10, -2]"
+                size="small"
+              />
+            </a-menu-item>
+          </a-menu-item-group>
 
-        <a-sub-menu key="articles">
-          <template #icon><FileTextOutlined /></template>
-          <template #title>资讯管理</template>
-          <a-menu-item key="article-list">资讯列表</a-menu-item>
-          <a-menu-item key="article-create">新增资讯</a-menu-item>
-        </a-sub-menu>
-
-        <a-sub-menu key="settings">
-          <template #icon><SettingOutlined /></template>
-          <template #title>系统设置</template>
-          <a-menu-item key="noise-config">降噪配置</a-menu-item>
-          <a-menu-item key="domain-manage">领域管理</a-menu-item>
-          <a-menu-item key="region-manage">地区管理</a-menu-item>
-          <a-menu-item key="radar-manage">雷达词管理</a-menu-item>
-          <a-menu-item key="source-manage">数据来源配置</a-menu-item>
-        </a-sub-menu>
-
-        <a-menu-item-group>
-          <template #title>
-            <span style="color: #666; font-size: 11px">用户运营</span>
-          </template>
-          <a-menu-item key="feedback">
-            <template #icon><MessageOutlined /></template>
-            用户反馈
-            <a-badge :count="12" :offset="[8, -2]" />
-          </a-menu-item>
-          <a-menu-item key="users">
-            <template #icon><TeamOutlined /></template>
-            用户管理
-          </a-menu-item>
-        </a-menu-item-group>
+          <a-sub-menu v-else :key="section.key">
+            <template #icon>
+              <component :is="section.icon" />
+            </template>
+            <template #title>{{ section.title }}</template>
+            <a-menu-item v-for="item in section.items" :key="item.key">
+              {{ item.label }}
+            </a-menu-item>
+          </a-sub-menu>
+        </template>
       </a-menu>
 
-      <!-- 折叠按钮 -->
-      <div class="collapse-btn" @click="collapsed = !collapsed">
-        <MenuFoldOutlined v-if="!collapsed" />
-        <MenuUnfoldOutlined v-else />
+      <div class="sider-footer">
+        <div class="collapse-btn" @click="collapsed = !collapsed">
+          <MenuFoldOutlined v-if="!collapsed" />
+          <MenuUnfoldOutlined v-else />
+          <span v-if="!collapsed">收起导航</span>
+        </div>
       </div>
     </a-layout-sider>
 
     <a-layout>
-      <!-- 顶部导航 -->
-      <a-layout-header style="background: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,0.08)">
+      <a-layout-header class="admin-header">
         <div class="header-left">
-          <span class="page-title">{{ currentPageTitle }}</span>
+          <div class="page-heading">
+            <span class="page-title">{{ currentPageTitle }}</span>
+            <a-breadcrumb class="page-breadcrumb">
+              <a-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path || crumb.title">
+                {{ crumb.title }}
+              </a-breadcrumb-item>
+            </a-breadcrumb>
+          </div>
         </div>
+
         <div class="header-right">
-          <!-- 搜索 -->
           <a-input-search
-            placeholder="快速搜索..."
-            style="width: 200px; margin-right: 16px"
+            v-model:value="searchKeyword"
+            placeholder="搜索资讯标题、摘要或关键词..."
+            allow-clear
+            class="header-search"
             @search="handleSearch"
           />
-          <!-- 通知 -->
-          <a-badge :count="3" style="margin-right: 20px">
-            <BellOutlined style="font-size: 18px; cursor: pointer" />
+
+          <a-badge :count="3" size="small" class="header-badge">
+            <BellOutlined class="header-icon" />
           </a-badge>
-          <!-- 用户信息 -->
+
           <a-dropdown>
             <div class="user-info">
-              <a-avatar style="background-color: #00B96B; margin-right: 8px">
+              <a-avatar class="user-avatar">
                 {{ authStore.user?.name?.charAt(0) || '管' }}
               </a-avatar>
-              <span>{{ authStore.user?.name || '管理员' }}</span>
-              <span style="color: #999; margin-left: 4px; font-size: 12px">{{ authStore.user?.role === 'admin' ? '管理员' : '编辑' }}</span>
+              <div class="user-copy">
+                <span class="user-name">{{ authStore.user?.name || '管理员' }}</span>
+                <span class="user-role">{{ authStore.user?.role === 'admin' ? '管理员' : '编辑' }}</span>
+              </div>
             </div>
             <template #overlay>
               <a-menu>
@@ -114,176 +111,550 @@
         </div>
       </a-layout-header>
 
-      <!-- 内容区 -->
-      <a-layout-content style="margin: 24px; overflow: auto">
-        <router-view />
+      <a-layout-content class="admin-content">
+        <router-view v-slot="{ Component }">
+          <Suspense>
+            <component :is="Component" />
+            <template #fallback>
+              <div class="route-loading-shell">
+                <a-spin size="large" tip="页面加载中..." />
+              </div>
+            </template>
+          </Suspense>
+        </router-view>
       </a-layout-content>
     </a-layout>
   </a-layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, markRaw, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import {
+  BarChartOutlined,
+  BellOutlined,
   DashboardOutlined,
   FileTextOutlined,
-  SettingOutlined,
-  MessageOutlined,
-  TeamOutlined,
-  BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BarChartOutlined,
+  MessageOutlined,
+  SettingOutlined,
+  TeamOutlined,
 } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+
+interface MenuItemConfig {
+  key: string
+  label: string
+  route: string
+  title: string
+  icon?: unknown
+  badgeCount?: number
+  parentKey?: string
+}
+
+interface MenuGroupSection {
+  kind: 'group'
+  key: string
+  title: string
+  items: MenuItemConfig[]
+}
+
+interface MenuSubMenuSection {
+  kind: 'submenu'
+  key: string
+  title: string
+  icon: unknown
+  items: MenuItemConfig[]
+}
+
+type MenuSection = MenuGroupSection | MenuSubMenuSection
+
+const UI_PREFERENCE_KEY = 'pulseread-admin-ui-preferences'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const collapsed = ref(false)
+const menuSections: MenuSection[] = [
+  {
+    kind: 'group',
+    key: 'main-group',
+    title: '主要功能',
+    items: [
+      {
+        key: 'dashboard',
+        label: '仪表板',
+        route: '/dashboard',
+        title: '仪表板',
+        icon: markRaw(DashboardOutlined),
+      },
+      {
+        key: 'analytics',
+        label: '数据统计',
+        route: '/analytics',
+        title: '数据统计',
+        icon: markRaw(BarChartOutlined),
+      },
+    ],
+  },
+  {
+    kind: 'submenu',
+    key: 'articles',
+    title: '资讯管理',
+    icon: markRaw(FileTextOutlined),
+    items: [
+      {
+        key: 'article-list',
+        label: '资讯列表',
+        route: '/articles',
+        title: '资讯列表',
+        parentKey: 'articles',
+      },
+      {
+        key: 'article-create',
+        label: '新增资讯',
+        route: '/articles/create',
+        title: '新增资讯',
+        parentKey: 'articles',
+      },
+    ],
+  },
+  {
+    kind: 'submenu',
+    key: 'settings',
+    title: '系统设置',
+    icon: markRaw(SettingOutlined),
+    items: [
+      {
+        key: 'noise-config',
+        label: '降噪配置',
+        route: '/settings/noise',
+        title: '降噪配置',
+        parentKey: 'settings',
+      },
+      {
+        key: 'domain-manage',
+        label: '领域管理',
+        route: '/settings/domains',
+        title: '领域管理',
+        parentKey: 'settings',
+      },
+      {
+        key: 'region-manage',
+        label: '地区管理',
+        route: '/settings/regions',
+        title: '地区管理',
+        parentKey: 'settings',
+      },
+      {
+        key: 'radar-manage',
+        label: '雷达词管理',
+        route: '/settings/radar',
+        title: '雷达词管理',
+        parentKey: 'settings',
+      },
+      {
+        key: 'source-manage',
+        label: '数据来源配置',
+        route: '/settings/sources',
+        title: '数据来源配置',
+        parentKey: 'settings',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    key: 'user-group',
+    title: '用户运营',
+    items: [
+      {
+        key: 'feedback',
+        label: '用户反馈',
+        route: '/feedback',
+        title: '用户反馈',
+        icon: markRaw(MessageOutlined),
+        badgeCount: 12,
+      },
+      {
+        key: 'users',
+        label: '用户管理',
+        route: '/users',
+        title: '用户管理',
+        icon: markRaw(TeamOutlined),
+      },
+    ],
+  },
+]
+
+const menuItems = menuSections.flatMap((section) => section.items)
+const routePathToMenuItem = new Map(menuItems.map((item) => [item.route, item]))
+const menuKeyToRoute = new Map(menuItems.map((item) => [item.key, item.route]))
+
+function loadUiPreferences() {
+  if (typeof window === 'undefined') {
+    return {
+      collapsed: false,
+      openKeys: ['articles', 'settings'],
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(UI_PREFERENCE_KEY) || '{}') as {
+      collapsed?: boolean
+      openKeys?: string[]
+    }
+
+    return {
+      collapsed: parsed.collapsed ?? false,
+      openKeys: parsed.openKeys?.length ? parsed.openKeys : ['articles', 'settings'],
+    }
+  } catch {
+    return {
+      collapsed: false,
+      openKeys: ['articles', 'settings'],
+    }
+  }
+}
+
+const uiPreferences = loadUiPreferences()
+const collapsed = ref(uiPreferences.collapsed)
+const openKeys = ref<string[]>(uiPreferences.openKeys)
 const selectedKeys = ref<string[]>(['dashboard'])
-const openKeys = ref<string[]>(['articles', 'settings'])
+const searchKeyword = ref(typeof route.query.keyword === 'string' ? route.query.keyword : '')
 
-const routeToMenuKey: Record<string, string> = {
-  '/dashboard': 'dashboard',
-  '/articles': 'article-list',
-  '/articles/create': 'article-create',
-  '/users': 'users',
-  '/feedback': 'feedback',
-  '/settings/noise': 'noise-config',
-  '/settings/domains': 'domain-manage',
-  '/settings/regions': 'region-manage',
-  '/settings/radar': 'radar-manage',
-  '/settings/sources': 'source-manage',
-  '/analytics': 'analytics',
-}
+const currentMenuItem = computed(() => {
+  if (route.path.startsWith('/articles/edit/')) {
+    return {
+      key: 'article-list',
+      label: '编辑资讯',
+      route: route.path,
+      title: '编辑资讯',
+      parentKey: 'articles',
+    }
+  }
 
-const menuKeyToRoute: Record<string, string> = {
-  'dashboard': '/dashboard',
-  'article-list': '/articles',
-  'article-create': '/articles/create',
-  'users': '/users',
-  'feedback': '/feedback',
-  'noise-config': '/settings/noise',
-  'domain-manage': '/settings/domains',
-  'region-manage': '/settings/regions',
-  'radar-manage': '/settings/radar',
-  'source-manage': '/settings/sources',
-  'analytics': '/analytics',
-}
+  return routePathToMenuItem.get(route.path)
+})
 
-const pageTitles: Record<string, string> = {
-  '/dashboard': '仪表板',
-  '/articles': '资讯列表',
-  '/articles/create': '新增资讯',
-  '/users': '用户管理',
-  '/feedback': '用户反馈',
-  '/settings/noise': '降噪配置',
-  '/settings/domains': '领域管理',
-  '/settings/regions': '地区管理',
-  '/settings/radar': '雷达词管理',
-  '/settings/sources': '数据来源配置',
-  '/analytics': '数据统计',
-}
+const currentPageTitle = computed(() => {
+  return typeof route.meta.title === 'string'
+    ? route.meta.title
+    : currentMenuItem.value?.title || '管理后台'
+})
 
-const currentPageTitle = computed(() => pageTitles[route.path] || '管理后台')
+const breadcrumbs = computed(() => {
+  const matchedTitles = route.matched
+    .filter((record) => typeof record.meta?.title === 'string')
+    .map((record) => ({
+      title: record.meta.title as string,
+      path: record.path,
+    }))
+
+  if (matchedTitles.length > 0) {
+    return matchedTitles
+  }
+
+  return [{ title: currentPageTitle.value, path: route.path }]
+})
 
 watch(
-  () => route.path,
-  (path) => {
-    const key = routeToMenuKey[path]
-    if (key) selectedKeys.value = [key]
+  () => route.fullPath,
+  () => {
+    searchKeyword.value = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+
+    if (currentMenuItem.value?.key) {
+      selectedKeys.value = [currentMenuItem.value.key]
+    }
+
+    const parentKey = currentMenuItem.value?.parentKey
+    if (parentKey && !collapsed.value && !openKeys.value.includes(parentKey)) {
+      openKeys.value = [...openKeys.value, parentKey]
+    }
   },
   { immediate: true },
 )
 
+watch(
+  [collapsed, openKeys],
+  () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.localStorage.setItem(
+      UI_PREFERENCE_KEY,
+      JSON.stringify({
+        collapsed: collapsed.value,
+        openKeys: openKeys.value,
+      }),
+    )
+  },
+  { deep: true },
+)
+
+watch(collapsed, (value) => {
+  if (value) {
+    openKeys.value = []
+    return
+  }
+
+  const parentKey = currentMenuItem.value?.parentKey
+  openKeys.value = parentKey ? [parentKey] : uiPreferences.openKeys
+})
+
+function handleOpenChange(keys: string[]) {
+  openKeys.value = keys
+}
+
 function handleMenuClick({ key }: { key: string }) {
-  const path = menuKeyToRoute[key]
-  if (path) router.push(path)
+  const targetRoute = menuKeyToRoute.get(key)
+  if (targetRoute && targetRoute !== route.path) {
+    router.push(targetRoute)
+  }
 }
 
 function handleSearch(value: string) {
-  if (value) {
-    router.push({ path: '/articles', query: { keyword: value } })
-  }
+  const keyword = value.trim()
+  router.push({
+    path: '/articles',
+    query: keyword ? { keyword } : {},
+  })
 }
 
 async function handleLogout() {
   authStore.logout()
   message.success('已退出登录')
-  router.push('/login')
+  await router.push('/login')
 }
 </script>
 
 <style scoped>
-.logo-area {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-bottom: 1px solid #2a2a2a;
-  padding: 0 16px;
+.admin-shell {
+  min-height: 100vh;
 }
+
+.admin-sider {
+  position: sticky;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #101418 0%, #141414 50%, #171d1b 100%) !important;
+  box-shadow: 6px 0 18px rgba(10, 20, 18, 0.16);
+}
+
+.logo-area {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .logo-icon {
-  width: 32px;
-  height: 32px;
-  background: #00B96B;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, #19c37d 0%, #0aa868 100%);
   color: #fff;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: 1px;
   flex-shrink: 0;
 }
+
+.logo-copy {
+  display: flex;
+  flex-direction: column;
+}
+
 .logo-text {
   color: #fff;
   font-size: 16px;
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.2;
 }
+
+.logo-subtitle {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.admin-menu {
+  flex: 1;
+  padding: 12px 8px 0;
+  background: transparent !important;
+}
+
+.menu-group-title {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+
+.menu-item-label {
+  margin-right: 8px;
+}
+
+.sider-footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .collapse-btn {
-  position: absolute;
-  bottom: 16px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  color: #666;
-  cursor: pointer;
-  padding: 8px;
-  transition: color 0.2s;
-}
-.collapse-btn:hover {
-  color: #fff;
-}
-.header-left {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
+
+.collapse-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 72px;
+  padding: 0 28px;
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(14px);
+}
+
+.header-left,
 .header-right {
   display: flex;
   align-items: center;
 }
+
+.header-right {
+  gap: 16px;
+}
+
+.page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.2;
+}
+
+.page-breadcrumb :deep(.ant-breadcrumb-link) {
+  color: #667085;
+}
+
+.header-search {
+  width: 300px;
+}
+
+.header-badge {
+  display: flex;
+  align-items: center;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #475467;
+  cursor: pointer;
+}
+
 .user-info {
   display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s;
+  transition: background 0.2s ease;
 }
+
 .user-info:hover {
-  background: #f5f5f5;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #00b96b 0%, #08a36d 100%);
+}
+
+.user-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-name {
+  color: #101828;
+  font-weight: 600;
+}
+
+.user-role {
+  color: #667085;
+  font-size: 12px;
+}
+
+.admin-content {
+  min-height: calc(100vh - 72px);
+  padding: 24px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at top right, rgba(0, 185, 107, 0.08), transparent 240px),
+    linear-gradient(180deg, #f5f7fb 0%, #eef2f7 100%);
+}
+
+.route-loading-shell {
+  min-height: calc(100vh - 160px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+@media (max-width: 1200px) {
+  .header-search {
+    width: 220px;
+  }
+}
+
+@media (max-width: 992px) {
+  .admin-header {
+    padding: 0 20px;
+  }
+
+  .admin-content {
+    padding: 20px;
+  }
+
+  .user-copy {
+    display: none;
+  }
 }
 </style>
