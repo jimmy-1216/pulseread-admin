@@ -9,6 +9,7 @@ import type {
   ArticlePayload,
   ArticleQuery,
   DashboardStats,
+  DedupStrategy,
   DistributionItem,
   DomainItem,
   Feedback,
@@ -18,7 +19,10 @@ import type {
   PaginatedResult,
   RecentActivity,
   Source,
+  SourceHealthStatus,
+  SourceLanguage,
   SourcePayload,
+  SourceProtocol,
   TrendPoint,
   User,
   UserQuery,
@@ -272,6 +276,22 @@ export const feedbackApi = {
   },
 }
 
+const createSourceDefaults = () => ({
+  sourceType: 'rss' as SourceProtocol,
+  language: 'zh' as SourceLanguage,
+  priority: 5,
+  parserType: 'rss' as SourceProtocol,
+  dedupStrategy: 'url' as DedupStrategy,
+  categoryTags: [] as string[],
+  lastFetchTime: '',
+  lastSuccessTime: '',
+  successRate: 95,
+  failCount: 0,
+  avgLatency: 800,
+  healthStatus: 'healthy' as SourceHealthStatus,
+  lastError: undefined as string | undefined,
+})
+
 export const sourceApi = {
   async getList(): Promise<Source[]> {
     await delay(240)
@@ -280,6 +300,7 @@ export const sourceApi = {
 
   async create(payload: Partial<SourcePayload>): Promise<Source> {
     await delay(320)
+    const defaults = createSourceDefaults()
     const source: Source = {
       id: Date.now(),
       name: payload.name || '',
@@ -292,6 +313,19 @@ export const sourceApi = {
       remark: payload.remark || '',
       todayCount: payload.todayCount ?? 0,
       status: payload.status || 'active',
+      sourceType: payload.sourceType || defaults.sourceType,
+      language: payload.language || defaults.language,
+      priority: payload.priority ?? defaults.priority,
+      parserType: payload.parserType || defaults.parserType,
+      dedupStrategy: payload.dedupStrategy || defaults.dedupStrategy,
+      categoryTags: payload.categoryTags || defaults.categoryTags,
+      lastFetchTime: payload.lastFetchTime || defaults.lastFetchTime,
+      lastSuccessTime: payload.lastSuccessTime || defaults.lastSuccessTime,
+      successRate: payload.successRate ?? defaults.successRate,
+      failCount: payload.failCount ?? defaults.failCount,
+      avgLatency: payload.avgLatency ?? defaults.avgLatency,
+      healthStatus: payload.healthStatus || defaults.healthStatus,
+      lastError: payload.lastError || defaults.lastError,
     }
     sources.unshift(source)
     return clone(source)
@@ -303,7 +337,11 @@ export const sourceApi = {
     if (index === -1) {
       throw new Error('来源不存在')
     }
-    sources[index] = { ...sources[index], ...payload }
+    sources[index] = {
+      ...sources[index],
+      ...payload,
+      categoryTags: payload.categoryTags ?? sources[index].categoryTags,
+    }
     return clone(sources[index])
   },
 

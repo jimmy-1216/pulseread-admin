@@ -8,6 +8,10 @@ export type UserStatus = 'active' | 'banned'
 export type FeedbackType = 'bug' | 'feature' | 'content' | 'other'
 export type FeedbackStatus = 'pending' | 'processing' | 'resolved' | 'closed'
 export type SourceStatus = 'active' | 'inactive'
+export type SourceProtocol = 'rss' | 'scrape' | 'api'
+export type SourceLanguage = 'zh' | 'en' | 'multi'
+export type SourceHealthStatus = 'healthy' | 'warning' | 'error'
+export type DedupStrategy = 'url' | 'title' | 'content_hash'
 export type AdminRole = 'admin' | 'editor' | 'viewer'
 
 export interface OptionItem<T extends string = string> {
@@ -104,6 +108,19 @@ export interface Source {
   remark: string
   todayCount: number
   status: SourceStatus
+  sourceType: SourceProtocol
+  language: SourceLanguage
+  priority: number
+  parserType: SourceProtocol
+  dedupStrategy: DedupStrategy
+  categoryTags: string[]
+  lastFetchTime: string
+  lastSuccessTime: string
+  successRate: number
+  failCount: number
+  avgLatency: number
+  healthStatus: SourceHealthStatus
+  lastError?: string
 }
 
 export interface SourcePayload {
@@ -117,6 +134,19 @@ export interface SourcePayload {
   remark: string
   todayCount?: number
   status: SourceStatus
+  sourceType: SourceProtocol
+  language: SourceLanguage
+  priority: number
+  parserType: SourceProtocol
+  dedupStrategy: DedupStrategy
+  categoryTags: string[]
+  lastFetchTime?: string
+  lastSuccessTime?: string
+  successRate?: number
+  failCount?: number
+  avgLatency?: number
+  healthStatus: SourceHealthStatus
+  lastError?: string
 }
 
 export interface Feedback {
