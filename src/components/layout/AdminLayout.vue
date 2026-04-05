@@ -262,6 +262,13 @@ const menuSections: MenuSection[] = [
         title: '数据来源配置',
         parentKey: 'settings',
       },
+      {
+        key: 'fetch-task-logs',
+        label: '抓取任务日志',
+        route: '/settings/fetch-logs',
+        title: '抓取任务日志',
+        parentKey: 'settings',
+      },
     ],
   },
   {

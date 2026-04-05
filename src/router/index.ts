@@ -81,6 +81,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '数据来源配置' },
       },
       {
+        path: 'settings/fetch-logs',
+        name: 'FetchTaskLogs',
+        component: () => import('@/views/settings/FetchTaskLogs.vue'),
+        meta: { title: '抓取任务日志' },
+      },
+      {
         path: 'analytics',
         name: 'Analytics',
         component: () => import('@/views/analytics/Analytics.vue'),

@@ -12,6 +12,8 @@ export type SourceProtocol = 'rss' | 'scrape' | 'api'
 export type SourceLanguage = 'zh' | 'en' | 'multi'
 export type SourceHealthStatus = 'healthy' | 'warning' | 'error'
 export type DedupStrategy = 'url' | 'title' | 'content_hash'
+export type FetchTaskStatus = 'success' | 'partial' | 'failed' | 'running'
+export type FetchTriggerType = 'schedule' | 'manual' | 'retry'
 export type AdminRole = 'admin' | 'editor' | 'viewer'
 
 export interface OptionItem<T extends string = string> {
@@ -147,6 +149,52 @@ export interface SourcePayload {
   avgLatency?: number
   healthStatus: SourceHealthStatus
   lastError?: string
+}
+
+export interface FetchTaskLog {
+  id: number
+  taskName: string
+  sourceId: number
+  sourceName: string
+  sourceUrl: string
+  domain: ArticleDomain
+  region: ArticleRegion
+  triggerType: FetchTriggerType
+  status: FetchTaskStatus
+  startTime: string
+  endTime: string
+  durationMs: number
+  fetchedCount: number
+  newCount: number
+  duplicateCount: number
+  filteredCount: number
+  errorCount: number
+  successRate: number
+  parserType: SourceProtocol
+  dedupStrategy: DedupStrategy
+  operator: string
+  errorMessage?: string
+}
+
+export interface FetchTaskLogQuery {
+  keyword?: string
+  sourceId?: number | 'all'
+  domain?: ArticleDomain | 'all'
+  region?: ArticleRegion | 'all'
+  triggerType?: FetchTriggerType | 'all'
+  status?: FetchTaskStatus | 'all'
+  page?: number
+  pageSize?: number
+}
+
+export interface FetchTaskLogSummary {
+  totalRuns: number
+  successRuns: number
+  failedRuns: number
+  runningRuns: number
+  averageSuccessRate: number
+  averageDurationMs: number
+  totalNewCount: number
 }
 
 export interface Feedback {

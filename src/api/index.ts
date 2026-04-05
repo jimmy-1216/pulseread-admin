@@ -15,6 +15,10 @@ import type {
   Feedback,
   FeedbackQuery,
   FeedbackStatus,
+  FetchTaskLog,
+  FetchTaskLogQuery,
+  FetchTaskLogSummary,
+  FetchTaskStatus,
   NoiseConfig,
   PaginatedResult,
   RecentActivity,
@@ -33,6 +37,7 @@ import {
   MOCK_DASHBOARD_STATS,
   MOCK_DOMAIN_DISTRIBUTION,
   MOCK_FEEDBACKS,
+  MOCK_FETCH_TASK_LOGS,
   MOCK_RADAR_WORDS,
   MOCK_RECENT_ACTIVITIES,
   MOCK_SOURCES,
@@ -49,6 +54,7 @@ let users: User[] = clone(MOCK_USERS)
 let feedbacks: Feedback[] = clone(MOCK_FEEDBACKS)
 let noiseConfig: NoiseConfig = clone(DEFAULT_NOISE_CONFIG)
 let sources: Source[] = clone(MOCK_SOURCES)
+let fetchTaskLogs: FetchTaskLog[] = clone(MOCK_FETCH_TASK_LOGS)
 let radarWords: string[] = clone(MOCK_RADAR_WORDS)
 let domains: DomainItem[] = [
   { key: 'tech', label: '科技', icon: '💻', description: '前沿技术、AI、芯片、云计算', color: '#1677FF', status: 'active' },
@@ -349,6 +355,113 @@ export const sourceApi = {
     await delay(220)
     sources = sources.filter((item) => item.id !== id)
     return true
+  },
+}
+
+export const fetchTaskLogApi = {
+  async getList(params: FetchTaskLogQuery = {}): Promise<PaginatedResult<FetchTaskLog>> {
+    await delay(240)
+    let list = [...fetchTaskLogs]
+
+    if (params.keyword) {
+      list = list.filter((item) => {
+        const keyword = params.keyword!.trim()
+        return (
+          item.taskName.includes(keyword) ||
+          item.sourceName.includes(keyword) ||
+          item.sourceUrl.includes(keyword) ||
+          item.operator.includes(keyword) ||
+          item.errorMessage?.includes(keyword)
+        )
+      })
+    }
+
+    if (params.sourceId && params.sourceId !== 'all') {
+      list = list.filter((item) => item.sourceId === params.sourceId)
+    }
+
+    if (params.domain && params.domain !== 'all') {
+      list = list.filter((item) => item.domain === params.domain)
+    }
+
+    if (params.region && params.region !== 'all') {
+      list = list.filter((item) => item.region === params.region)
+    }
+
+    if (params.triggerType && params.triggerType !== 'all') {
+      list = list.filter((item) => item.triggerType === params.triggerType)
+    }
+
+    if (params.status && params.status !== 'all') {
+      list = list.filter((item) => item.status === params.status)
+    }
+
+    list.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    return paginate(list, params.page, params.pageSize)
+  },
+
+  async getSummary(): Promise<FetchTaskLogSummary> {
+    await delay(180)
+    const totalRuns = fetchTaskLogs.length
+    const successRuns = fetchTaskLogs.filter((item) => item.status === 'success').length
+    const failedRuns = fetchTaskLogs.filter((item) => item.status === 'failed').length
+    const runningRuns = fetchTaskLogs.filter((item) => item.status === 'running').length
+    const averageSuccessRate = totalRuns
+      ? Math.round(fetchTaskLogs.reduce((sum, item) => sum + item.successRate, 0) / totalRuns)
+      : 0
+    const averageDurationMs = totalRuns
+      ? Math.round(fetchTaskLogs.reduce((sum, item) => sum + item.durationMs, 0) / totalRuns)
+      : 0
+    const totalNewCount = fetchTaskLogs.reduce((sum, item) => sum + item.newCount, 0)
+
+    return {
+      totalRuns,
+      successRuns,
+      failedRuns,
+      runningRuns,
+      averageSuccessRate,
+      averageDurationMs,
+      totalNewCount,
+    }
+  },
+
+  async retry(id: number): Promise<FetchTaskLog> {
+    await delay(320)
+    const target = fetchTaskLogs.find((item) => item.id === id)
+    if (!target) {
+      throw new Error('抓取任务不存在')
+    }
+
+    target.status = 'running'
+    target.triggerType = 'retry'
+    target.startTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    target.endTime = target.startTime
+    target.durationMs = 12000
+    target.operator = 'admin@pulseread.com'
+    target.errorMessage = undefined
+
+    const source = sources.find((item) => item.id === target.sourceId)
+    if (source) {
+      source.lastFetchTime = target.startTime
+      source.healthStatus = 'warning'
+    }
+
+    return clone(target)
+  },
+
+  async updateStatus(id: number, status: FetchTaskStatus): Promise<FetchTaskLog> {
+    await delay(220)
+    const target = fetchTaskLogs.find((item) => item.id === id)
+    if (!target) {
+      throw new Error('抓取任务不存在')
+    }
+
+    target.status = status
+    if (status === 'success') {
+      target.endTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
+      target.errorMessage = undefined
+    }
+    return clone(target)
   },
 }
 
