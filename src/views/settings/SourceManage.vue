@@ -6,6 +6,7 @@
         <p>统一管理资讯抓取网站、抓取协议、优先级、去重策略与运行健康度，便于后续扩展更多采集来源。</p>
       </div>
       <a-space>
+        <a-button @click="router.push('/settings/source-health')">健康监控</a-button>
         <a-button @click="reloadSources">刷新数据</a-button>
         <a-button type="primary" @click="showAddModal">
           <template #icon><PlusOutlined /></template>
@@ -397,6 +398,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { sourceApi } from '@/api'
@@ -433,6 +435,8 @@ type TestResultItem = {
   score: number
   statusText: string
 }
+
+const router = useRouter()
 
 const domainColorMap: Record<ArticleDomain, string> = {
   tech: 'blue',

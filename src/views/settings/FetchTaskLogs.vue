@@ -196,6 +196,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { fetchTaskLogApi, sourceApi } from '@/api'
 import type {
@@ -211,6 +212,7 @@ import type {
   DedupStrategy,
 } from '@/types'
 
+const route = useRoute()
 const loading = ref(false)
 const detailVisible = ref(false)
 const currentLog = ref<FetchTaskLog | null>(null)
@@ -290,6 +292,19 @@ function sanitizeFilters() {
   return {
     ...filters.value,
     keyword: filters.value.keyword.trim(),
+  }
+}
+
+function applyRouteFilters() {
+  const routeSourceId = route.query.sourceId
+  if (typeof routeSourceId === 'string') {
+    const parsed = Number(routeSourceId)
+    filters.value.sourceId = Number.isNaN(parsed) ? 'all' : parsed
+  }
+
+  const routeStatus = route.query.status
+  if (typeof routeStatus === 'string' && ['all', 'success', 'partial', 'failed', 'running'].includes(routeStatus)) {
+    filters.value.status = routeStatus as Required<FetchTaskLogQuery>['status']
   }
 }
 
@@ -458,6 +473,7 @@ function getRegionColor(region: ArticleRegion) {
 }
 
 onMounted(async () => {
+  applyRouteFilters()
   try {
     await Promise.all([loadSources(), loadSummary(), loadLogs()])
   } catch (error) {

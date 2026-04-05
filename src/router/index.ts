@@ -75,6 +75,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '雷达词管理' },
       },
       {
+        path: 'settings/source-health',
+        name: 'SourceHealth',
+        component: () => import('@/views/settings/SourceHealth.vue'),
+        meta: { title: '来源健康监控' },
+      },
+      {
         path: 'settings/sources',
         name: 'SourceManage',
         component: () => import('@/views/settings/SourceManage.vue'),

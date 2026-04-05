@@ -256,6 +256,13 @@ const menuSections: MenuSection[] = [
         parentKey: 'settings',
       },
       {
+        key: 'source-health',
+        label: '来源健康监控',
+        route: '/settings/source-health',
+        title: '来源健康监控',
+        parentKey: 'settings',
+      },
+      {
         key: 'source-manage',
         label: '数据来源配置',
         route: '/settings/sources',
